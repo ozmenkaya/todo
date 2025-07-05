@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
 Helmex Todo Yönetim Sistemi - Otomatik Yedekleme
-Saatlik SQLite veritabanı yedekleme script'i
+PostgreSQL ve SQLite destekli yedekleme sistemi
 """
 
 import os
 import shutil
 import sqlite3
 import zipfile
+import subprocess
 from datetime import datetime
 import schedule
 import time
@@ -25,7 +26,20 @@ logging.basicConfig(
 
 class TodoBackupManager:
     def __init__(self):
-        self.db_path = 'todo_company.db'
+        # Veritabanı türünü belirle (PostgreSQL ya da SQLite)
+        self.database_url = os.environ.get('DATABASE_URL')
+        self.is_postgresql = self.database_url and 'postgresql' in self.database_url
+        
+        if self.is_postgresql:
+            # PostgreSQL için pg_dump kullan
+            self.backup_type = 'postgresql'
+            logging.info("PostgreSQL yedekleme modu aktif")
+        else:
+            # SQLite için dosya kopyalama
+            self.backup_type = 'sqlite'
+            self.db_path = 'todo_company.db'
+            logging.info("SQLite yedekleme modu aktif")
+            
         self.backup_dir = 'backups'
         self.max_backups = 24 * 7  # 7 günlük saatlik yedek (168 dosya)
         
@@ -37,12 +51,66 @@ class TodoBackupManager:
     def create_backup(self):
         """Saatlik yedekleme işlemi"""
         try:
+            # Timestamp ile dosya adı oluştur
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            
+            if self.is_postgresql:
+                return self._create_postgresql_backup(timestamp)
+            else:
+                return self._create_sqlite_backup(timestamp)
+                
+        except Exception as e:
+            logging.error(f"❌ Yedekleme hatası: {e}")
+            return False
+    
+    def _create_postgresql_backup(self, timestamp):
+        """PostgreSQL için pg_dump yedekleme"""
+        try:
+            backup_filename = f"todo_backup_{timestamp}.sql"
+            backup_path = os.path.join(self.backup_dir, backup_filename)
+            
+            # pg_dump komutu çalıştır
+            result = subprocess.run([
+                'pg_dump', self.database_url, 
+                '--no-password', 
+                '--verbose',
+                '--file', backup_path
+            ], capture_output=True, text=True)
+            
+            if result.returncode != 0:
+                logging.error(f"pg_dump hatası: {result.stderr}")
+                return False
+            
+            # Gzip ile sıkıştır
+            zip_path = backup_path.replace('.sql', '.zip')
+            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                zipf.write(backup_path, backup_filename)
+            
+            # Orijinal SQL dosyasını sil
+            os.remove(backup_path)
+            
+            # Dosya boyutunu al
+            file_size = os.path.getsize(zip_path)
+            file_size_mb = file_size / (1024 * 1024)
+            
+            logging.info(f"✅ PostgreSQL yedekleme başarılı: {zip_path} ({file_size_mb:.2f} MB)")
+            
+            # Eski yedekleri temizle
+            self._cleanup_old_backups()
+            
+            return True
+            
+        except Exception as e:
+            logging.error(f"PostgreSQL yedekleme hatası: {e}")
+            return False
+    
+    def _create_sqlite_backup(self, timestamp):
+        """SQLite için optimize edilmiş yedekleme"""
+        try:
             if not os.path.exists(self.db_path):
                 logging.warning(f"Veritabanı dosyası bulunamadı: {self.db_path}")
                 return False
             
-            # Timestamp ile dosya adı oluştur
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             backup_filename = f"todo_backup_{timestamp}.db"
             backup_path = os.path.join(self.backup_dir, backup_filename)
             

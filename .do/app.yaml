@@ -16,6 +16,9 @@ services:
     value: production
   - key: PORT
     value: "8080"
+  # PostgreSQL database connection
+  - key: DATABASE_URL
+    value: ${todo-db.DATABASE_URL}
   # Mail konfigürasyonu (Gmail SMTP için)
   # Bu değerleri gerçek mail bilgilerinizle değiştirin
   - key: MAIL_SERVER
@@ -46,6 +49,9 @@ services:
     value: f207c647dae4dd859b20bf29a98b82086f5b3e00c078bcafd35d622781b0200a
   - key: FLASK_ENV
     value: production
+  # PostgreSQL database connection for backup
+  - key: DATABASE_URL
+    value: ${todo-db.DATABASE_URL}
   # Mail konfigürasyonu (backup bildirimler için)
   - key: MAIL_SERVER
     value: smtp.gmail.com
@@ -60,12 +66,12 @@ services:
   - key: MAIL_DEFAULT_SENDER
     value: noreply@helmex.com.tr
 
-# PostgreSQL database eklemek isterseniz bu yorumu kaldırın:
-# databases:
-# - name: todo-db
-#   engine: PG
-#   size: db-s-dev-database  # $7/ay
-#   num_nodes: 1
+# PostgreSQL database - Kalıcı veri depolama için
+databases:
+- name: todo-db
+  engine: PG
+  size: db-s-dev-database  # $7/ay
+  num_nodes: 1
 
 # Redis cache eklemek isterseniz (ilerisi için):
 # - name: todo-cache
