@@ -16,6 +16,20 @@ services:
     value: production
   - key: PORT
     value: "8080"
+  # Mail konfigürasyonu (Gmail SMTP için)
+  # Bu değerleri gerçek mail bilgilerinizle değiştirin
+  - key: MAIL_SERVER
+    value: smtp.gmail.com
+  - key: MAIL_PORT
+    value: "587"
+  - key: MAIL_USE_TLS
+    value: "true"
+  - key: MAIL_USERNAME
+    value: your-email@gmail.com
+  - key: MAIL_PASSWORD
+    value: your-app-password
+  - key: MAIL_DEFAULT_SENDER
+    value: noreply@helmex.com
 
 # PostgreSQL database eklemek isterseniz bu yorumu kaldırın:
 # databases:

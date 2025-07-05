@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from flask_mail import Mail, Message
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 import os
@@ -21,7 +22,16 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here-ch
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///todo_company.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+# Mail configuration
+app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
+app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', '587'))
+app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'true').lower() in ['true', 'on', '1']
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@helmex.com')
+
 db = SQLAlchemy(app)
+mail = Mail(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
@@ -218,10 +228,18 @@ def create_task():
         db.session.add(task)
         db.session.commit()
         
-        if len(assigned_to_list) == 1:
-            flash('Görev başarıyla oluşturuldu!')
+        # Acil görevler için mail gönder
+        if priority == 'acil':
+            try:
+                send_urgent_task_email(task, assignees)
+                flash(f'🚨 Acil görev oluşturuldu ve {len(assigned_to_list)} kişiye mail gönderildi!')
+            except:
+                flash(f'⚠️ Görev oluşturuldu ama mail gönderilemedi. {len(assigned_to_list)} kişiye atandı.')
         else:
-            flash(f'Görev başarıyla oluşturuldu ve {len(assigned_to_list)} kişiye atandı!')
+            if len(assigned_to_list) == 1:
+                flash('Görev başarıyla oluşturuldu!')
+            else:
+                flash(f'Görev başarıyla oluşturuldu ve {len(assigned_to_list)} kişiye atandı!')
         
         return redirect(url_for('index'))
     
@@ -653,6 +671,52 @@ def create_admin_user():
         db.session.add(admin)
         db.session.commit()
         print("Admin kullanıcı oluşturuldu: admin / admin123")
+
+# Mail gönderme fonksiyonu
+def send_urgent_task_email(task, assignees):
+    """Acil görev oluşturulduğunda mail gönderir"""
+    try:
+        # Development ortamında mail konfigürasyonu yoksa simüle et
+        if not app.config.get('MAIL_USERNAME'):
+            print(f"🚨 ACİL GÖREV MAİLİ (SİMÜLE EDİLDİ):")
+            print(f"Görev: {task.title}")
+            print(f"Alıcılar: {[assignee.email or assignee.username for assignee in assignees]}")
+            return True
+            
+        # Her atanan kullanıcıya ayrı mail gönder
+        for assignee in assignees:
+            if assignee.email:  # Email adresi varsa
+                msg = Message(
+                    subject=f'🚨 ACİL GÖREV: {task.title}',
+                    recipients=[assignee.email],
+                    html=f'''
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                        <div style="background-color: #dc3545; color: white; padding: 20px; text-align: center;">
+                            <h1>🚨 ACİL GÖREV ATANDI</h1>
+                        </div>
+                        <div style="padding: 20px; background-color: #f8f9fa;">
+                            <h2>{task.title}</h2>
+                            <p><strong>Açıklama:</strong></p>
+                            <div style="background-color: white; padding: 15px; border-left: 4px solid #dc3545; margin: 10px 0;">
+                                {task.description.replace(chr(10), '<br>') if task.description else 'Açıklama yok'}
+                            </div>
+                            <p><strong>Öncelik:</strong> <span style="color: #dc3545; font-weight: bold;">ACİL</span></p>
+                            <p><strong>Atayan:</strong> {task.creator.username}</p>
+                            {f'<p><strong>Son Tarih:</strong> {task.due_date.strftime("%d.%m.%Y")}</p>' if task.due_date else ''}
+                            <p><strong>Oluşturulma Tarihi:</strong> {task.created_at.strftime("%d.%m.%Y %H:%M")}</p>
+                        </div>
+                        <div style="background-color: #e9ecef; padding: 15px; text-align: center;">
+                            <p style="margin: 0; color: #6c757d;">Bu görev acil olarak işaretlenmiştir. Lütfen en kısa sürede inceleyiniz.</p>
+                            <p style="margin: 5px 0 0 0; color: #6c757d; font-size: 12px;">Helmex Todo Yönetim Sistemi</p>
+                        </div>
+                    </div>
+                    '''
+                )
+                mail.send(msg)
+        return True
+    except Exception as e:
+        print(f"Mail gönderme hatası: {e}")
+        return False
 
 if __name__ == '__main__':
     import os
