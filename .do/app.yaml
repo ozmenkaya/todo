@@ -1,0 +1,46 @@
+name: todo-management-app
+services:
+- name: web
+  source_dir: /
+  github:
+    repo: your-username/your-repo-name
+    branch: main
+    deploy_on_push: true
+  run_command: gunicorn app:app --config gunicorn.conf.py
+  environment_slug: python
+  instance_count: 1
+  instance_size_slug: basic-xxs  # $5/ay
+  envs:
+  - key: SECRET_KEY
+    value: change-this-to-a-secure-secret-key-12345
+  - key: FLASK_ENV
+    value: production
+  - key: PORT
+    value: "5004"
+  http_port: 5004
+  health_check:
+    http_path: /
+    initial_delay_seconds: 30
+    period_seconds: 30
+    timeout_seconds: 5
+    failure_threshold: 3
+    success_threshold: 1
+
+# PostgreSQL database eklemek isterseniz bu yorumu kaldırın:
+# databases:
+# - name: todo-db
+#   engine: PG
+#   size: db-s-dev-database  # $7/ay
+#   num_nodes: 1
+
+# Redis cache eklemek isterseniz (ilerisi için):
+# - name: todo-cache
+#   engine: REDIS
+#   size: db-s-dev-database
+
+# Custom domain eklemek isterseniz:
+# domains:
+# - domain: yourdomain.com
+#   type: PRIMARY
+# - domain: www.yourdomain.com
+#   type: ALIAS
