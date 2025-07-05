@@ -3,7 +3,7 @@ services:
 - name: web
   source_dir: /
   github:
-    repo: your-username/your-repo-name
+    repo: ozmenkaya@gmail.com/todo-app
     branch: main
     deploy_on_push: true
   run_command: gunicorn app:app --config gunicorn.conf.py
@@ -12,7 +12,7 @@ services:
   instance_size_slug: basic-xxs  # $5/ay
   envs:
   - key: SECRET_KEY
-    value: change-this-to-a-secure-secret-key-12345
+    value: f207c647dae4dd859b20bf29a98b82086f5b3e00c078bcafd35d622781b0200a
   - key: FLASK_ENV
     value: production
   - key: PORT
