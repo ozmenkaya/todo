@@ -66,16 +66,23 @@ class TodoBackupManager:
     def _create_postgresql_backup(self, timestamp):
         """PostgreSQL için pg_dump yedekleme"""
         try:
+            if not self.database_url:
+                logging.error("DATABASE_URL bulunamadı")
+                return False
+                
             backup_filename = f"todo_backup_{timestamp}.sql"
             backup_path = os.path.join(self.backup_dir, backup_filename)
             
             # pg_dump komutu çalıştır
-            result = subprocess.run([
-                'pg_dump', self.database_url, 
+            cmd = [
+                'pg_dump', 
+                str(self.database_url),  # Ensure string type
                 '--no-password', 
                 '--verbose',
                 '--file', backup_path
-            ], capture_output=True, text=True)
+            ]
+            
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
             
             if result.returncode != 0:
                 logging.error(f"pg_dump hatası: {result.stderr}")

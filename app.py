@@ -20,23 +20,26 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here-ch
 
 # Database configuration - PostgreSQL for production, SQLite for development
 database_url = os.environ.get('DATABASE_URL')
-if database_url and database_url.startswith('postgres://'):
+if database_url:
     # DigitalOcean PostgreSQL URL düzeltmesi
-    database_url = database_url.replace('postgres://', 'postgresql://', 1)
-
-app.config['SQLALCHEMY_DATABASE_URI'] = database_url or 'sqlite:///todo_company.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-# Development vs Production ayarları
-if os.environ.get('FLASK_ENV') == 'production':
+    if database_url.startswith('postgres://'):
+        database_url = database_url.replace('postgres://', 'postgresql://', 1)
+    
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    
     # Production PostgreSQL ayarları
-    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-        'pool_pre_ping': True,
-        'pool_recycle': 300,
-    }
+    if os.environ.get('FLASK_ENV') == 'production':
+        app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+            'pool_pre_ping': True,
+            'pool_recycle': 300,
+            'pool_timeout': 20,
+            'max_overflow': 0,
+        }
 else:
-    # Development SQLite ayarları (local geliştirme için)
-    pass
+    # SQLite fallback (development veya PostgreSQL henüz hazır değilse)
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///todo_company.db'
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Mail configuration
 app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
@@ -804,11 +807,50 @@ def download_backup(filename):
 
 if __name__ == '__main__':
     import os
-    with app.app_context():
-        db.create_all()
-        create_admin_user()
+    import time
+    import sys
+    
+    # Database bağlantısını retry ile dene
+    max_retries = 5
+    retry_delay = 2
+    
+    for attempt in range(max_retries):
+        try:
+            with app.app_context():
+                # Database bağlantısını test et
+                from sqlalchemy import text
+                result = db.session.execute(text('SELECT 1'))
+                print(f"✅ Database bağlantısı başarılı (attempt {attempt + 1})")
+                
+                # Tabloları oluştur
+                db.create_all()
+                print("✅ Tablolar oluşturuldu/güncellendi")
+                
+                # Admin kullanıcı oluştur
+                create_admin_user()
+                print("✅ Admin kullanıcı kontrolü tamamlandı")
+                
+                break  # Başarılı, döngüden çık
+                
+        except Exception as e:
+            print(f"❌ Database bağlantı hatası (attempt {attempt + 1}/{max_retries}): {e}")
+            
+            if attempt < max_retries - 1:
+                print(f"⏳ {retry_delay} saniye bekleyip tekrar denenecek...")
+                time.sleep(retry_delay)
+                retry_delay *= 2  # Exponential backoff
+            else:
+                print("💥 Maximum retry sayısına ulaşıldı. SQLite fallback kullanılacak.")
+                # SQLite fallback
+                app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///todo_company.db'
+                with app.app_context():
+                    db.create_all()
+                    create_admin_user()
+                break
     
     # Production için port'u environment variable'dan al
     port = int(os.environ.get('PORT', 5004))
     debug = os.environ.get('FLASK_ENV') != 'production'
+    
+    print(f"🚀 Flask app başlatılıyor - Port: {port}, Debug: {debug}")
     app.run(debug=debug, host='0.0.0.0', port=port)
