@@ -1,31 +1,19 @@
 name: todo-management-app
 services:
 - name: web
-  source_dir: .
   github:
     repo: ozmenkaya/todo
     branch: main
     deploy_on_push: true
-  build_command: pip install -r requirements.txt
-  run_command: gunicorn app:app --bind 0.0.0.0:8080
+  run_command: gunicorn app:app --bind 0.0.0.0:$PORT
   environment_slug: python
   instance_count: 1
-  instance_size_slug: basic-xxs  # $5/ay
+  instance_size_slug: basic-xxs
   envs:
   - key: SECRET_KEY
     value: f207c647dae4dd859b20bf29a98b82086f5b3e00c078bcafd35d622781b0200a
   - key: FLASK_ENV
     value: production
-  - key: PORT
-    value: "8080"
-  http_port: 8080
-  health_check:
-    http_path: /
-    initial_delay_seconds: 30
-    period_seconds: 30
-    timeout_seconds: 5
-    failure_threshold: 3
-    success_threshold: 1
 
 # PostgreSQL database eklemek isterseniz bu yorumu kaldırın:
 # databases:
