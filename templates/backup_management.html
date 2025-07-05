@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}Yedekleme Yönetimi - Helmex{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-hdd"></i> Yedekleme Yönetimi</h2>
+            <form method="POST" action="{{ url_for('create_backup') }}" style="display: inline;">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Yeni Yedek Al
+                </button>
+            </form>
+        </div>
+
+        <!-- Yedekleme İstatistikleri -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card border-primary">
+                    <div class="card-body text-center">
+                        <i class="fas fa-archive fa-2x text-primary mb-2"></i>
+                        <h5 class="card-title">Toplam Yedek</h5>
+                        <h3 class="text-primary">{{ stats.count }}</h3>
+                        <small class="text-muted">dosya</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-info">
+                    <div class="card-body text-center">
+                        <i class="fas fa-weight fa-2x text-info mb-2"></i>
+                        <h5 class="card-title">Toplam Boyut</h5>
+                        <h3 class="text-info">{{ "%.1f"|format(stats.total_size) }}</h3>
+                        <small class="text-muted">MB</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-success">
+                    <div class="card-body text-center">
+                        <i class="fas fa-clock fa-2x text-success mb-2"></i>
+                        <h5 class="card-title">Son Yedek</h5>
+                        <h6 class="text-success">{{ stats.latest or "Henüz yok" }}</h6>
+                        <small class="text-muted">tarih/saat</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-warning">
+                    <div class="card-body text-center">
+                        <i class="fas fa-sync-alt fa-2x text-warning mb-2"></i>
+                        <h5 class="card-title">Otomatik Yedek</h5>
+                        <h6 class="text-warning">Saatlik</h6>
+                        <small class="text-muted">aktif</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Yedekleme Rehberi -->
+        <div class="alert alert-info" role="alert">
+            <h5><i class="fas fa-info-circle"></i> Yedekleme Bilgileri</h5>
+            <ul class="mb-0">
+                <li><strong>Otomatik Yedekleme:</strong> Sistem her saat başında otomatik yedek alır</li>
+                <li><strong>Saklama Süresi:</strong> Son 7 günlük (168 saat) yedekler saklanır</li>
+                <li><strong>Sıkıştırma:</strong> Yedekler ZIP formatında sıkıştırılır</li>
+                <li><strong>İndirme:</strong> Yedekleri bilgisayarınıza indirebilirsiniz</li>
+            </ul>
+        </div>
+
+        <!-- Yedek Dosyalar Listesi -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-list"></i> Mevcut Yedekler</h5>
+            </div>
+            <div class="card-body">
+                {% if backup_files %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th><i class="fas fa-file-archive"></i> Dosya Adı</th>
+                                <th><i class="fas fa-calendar"></i> Tarih</th>
+                                <th><i class="fas fa-weight"></i> Boyut</th>
+                                <th><i class="fas fa-download"></i> İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for backup in backup_files %}
+                            <tr>
+                                <td>
+                                    <code>{{ backup.name }}</code>
+                                    {% if loop.index0 == 0 %}
+                                    <span class="badge bg-success ms-2">En Yeni</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="text-muted">
+                                        {{ backup.date.strftime("%d.%m.%Y") }}<br>
+                                        <small>{{ backup.date.strftime("%H:%M:%S") }}</small>
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ "%.2f"|format(backup.size) }} MB</span>
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('download_backup', filename=backup.name) }}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-download"></i> İndir
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Henüz yedek dosyası bulunmuyor</h5>
+                    <p class="text-muted">İlk yedeğinizi almak için yukarıdaki "Yeni Yedek Al" butonunu kullanın.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Komut Satırı Kullanımı -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-terminal"></i> Komut Satırı Kullanımı</h5>
+            </div>
+            <div class="card-body">
+                <p>Yedekleme sistemini komut satırından da kullanabilirsiniz:</p>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Otomatik yedeklemeyi başlat:</h6>
+                        <pre class="bg-dark text-light p-2 rounded"><code>python backup_system.py --start</code></pre>
+                        
+                        <h6>Tek seferlik yedek al:</h6>
+                        <pre class="bg-dark text-light p-2 rounded"><code>python backup_system.py --backup</code></pre>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>İstatistikleri görüntüle:</h6>
+                        <pre class="bg-dark text-light p-2 rounded"><code>python backup_system.py --stats</code></pre>
+                        
+                        <h6>Yedekten geri yükle:</h6>
+                        <pre class="bg-dark text-light p-2 rounded"><code>python backup_system.py --restore dosya.zip</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

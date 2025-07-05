@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from flask_mail import Mail, Message
@@ -717,6 +717,74 @@ def send_urgent_task_email(task, assignees):
     except Exception as e:
         print(f"Mail gönderme hatası: {e}")
         return False
+
+# Yedekleme sistemi routes
+@app.route('/admin/backups')
+@login_required
+def backup_management():
+    if current_user.role != 'admin':
+        flash('Bu sayfaya erişim yetkiniz yok!')
+        return redirect(url_for('index'))
+    
+    try:
+        from backup_system import TodoBackupManager
+        backup_manager = TodoBackupManager()
+        stats = backup_manager.get_backup_stats()
+        
+        # Yedek dosya listesi
+        backup_files = []
+        backup_dir = 'backups'
+        if os.path.exists(backup_dir):
+            for file in os.listdir(backup_dir):
+                if file.startswith('todo_backup_') and file.endswith('.zip'):
+                    file_path = os.path.join(backup_dir, file)
+                    file_size = os.path.getsize(file_path) / (1024 * 1024)  # MB
+                    file_time = datetime.fromtimestamp(os.path.getmtime(file_path))
+                    backup_files.append({
+                        'name': file,
+                        'size': file_size,
+                        'date': file_time
+                    })
+        
+        # Tarihe göre sırala (en yeni önce)
+        backup_files.sort(key=lambda x: x['date'], reverse=True)
+        
+        return render_template('backup_management.html', stats=stats, backup_files=backup_files)
+        
+    except Exception as e:
+        flash(f'Yedekleme bilgileri alınamadı: {e}')
+        return redirect(url_for('index'))
+
+@app.route('/admin/backup/create', methods=['POST'])
+@login_required
+def create_backup():
+    if current_user.role != 'admin':
+        flash('Bu işlemi yapma yetkiniz yok!')
+        return redirect(url_for('index'))
+    
+    try:
+        from backup_system import TodoBackupManager
+        backup_manager = TodoBackupManager()
+        
+        if backup_manager.create_backup():
+            flash('✅ Yedekleme başarıyla tamamlandı!')
+        else:
+            flash('❌ Yedekleme sırasında hata oluştu!')
+            
+    except Exception as e:
+        flash(f'Yedekleme hatası: {e}')
+    
+    return redirect(url_for('backup_management'))
+
+@app.route('/admin/backup/download/<filename>')
+@login_required
+def download_backup(filename):
+    if current_user.role != 'admin':
+        flash('Bu işlemi yapma yetkiniz yok!')
+        return redirect(url_for('index'))
+    
+    backup_dir = 'backups'
+    return send_from_directory(backup_dir, filename, as_attachment=True)
 
 if __name__ == '__main__':
     import os
