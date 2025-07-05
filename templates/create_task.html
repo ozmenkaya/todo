@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Yeni Görev - Şirket Todo{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="fas fa-plus"></i> Yeni Görev Oluştur</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Görev Başlığı *</label>
+                        <input type="text" class="form-control" id="title" name="title" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Açıklama</label>
+                        <textarea class="form-control" id="description" name="description" rows="4"></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="assigned_to" class="form-label">Atanacak Kişiler *</label>
+                                <select class="form-select" id="assigned_to" name="assigned_to" multiple required size="8">
+                                    {% for user in users %}
+                                        <option value="{{ user.id }}" data-role="{{ user.role }}" data-dept="{{ user.department or 'Belirtilmemiş' }}">
+                                            {{ user.username }} 
+                                            {% if user.role == 'manager' %}
+                                                (Manager)
+                                            {% elif user.role == 'admin' %}
+                                                (Admin)
+                                            {% endif %}
+                                            - {{ user.department or 'Departman belirtilmemiş' }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <small class="form-text text-muted">
+                                    <i class="fas fa-info-circle"></i> 
+                                    {% if current_user.role == 'manager' %}
+                                        Ctrl/Cmd tuşu ile birden fazla kişi seçebilirsiniz. Kendi departmanınızdaki çalışanlara ve diğer manager'lara görev atayabilirsiniz.
+                                    {% else %}
+                                        Ctrl/Cmd tuşu ile birden fazla kişi seçebilirsiniz.
+                                    {% endif %}
+                                </small>
+                                <div class="mt-2">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="selectAll()">
+                                        <i class="fas fa-check-double"></i> Tümünü Seç
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearSelection()">
+                                        <i class="fas fa-times"></i> Seçimi Temizle
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="priority" class="form-label">Öncelik</label>
+                                <select class="form-select" id="priority" name="priority">
+                                    <option value="low">Düşük</option>
+                                    <option value="medium" selected>Orta</option>
+                                    <option value="high">Yüksek</option>
+                                    <option value="urgent">Acil</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="due_date" class="form-label">Bitiş Tarihi</label>
+                        <input type="date" class="form-control" id="due_date" name="due_date" min="{{ moment.utcnow().strftime('%Y-%m-%d') }}">
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Görevi Oluştur
+                        </button>
+                        <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> İptal
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Bugünün tarihini minimum tarih olarak ayarla
+    const today = new Date().toISOString().split('T')[0];
+    $('#due_date').attr('min', today);
+});
+</script>
+{% endblock %}

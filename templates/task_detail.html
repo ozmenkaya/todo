@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block title %}{{ task.title }} - Görev Detayı{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <!-- Görev Detayları -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4>{{ task.title }}</h4>
+                <span class="badge bg-{{ 'danger' if task.priority == 'urgent' else 'warning' if task.priority == 'high' else 'primary' if task.priority == 'medium' else 'secondary' }} fs-6">
+                    {{ task.priority.title() }}
+                </span>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Durum:</strong>
+                        <span class="badge bg-{{ 'warning' if task.status == 'pending' else 'info' if task.status == 'in_progress' else 'success' if task.status == 'completed' else 'danger' }} ms-2">
+                            {% if task.status == 'pending' %}Beklemede
+                            {% elif task.status == 'in_progress' %}Devam Ediyor
+                            {% elif task.status == 'completed' %}Tamamlandı
+                            {% else %}İptal Edildi
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Atanan:</strong> 
+                        {% if task.assignees %}
+                            {% for assignee in task.assignees %}
+                            <span class="badge bg-light text-dark">{{ assignee.username }}</span>{% if not loop.last %}, {% endif %}
+                            {% endfor %}
+                        {% else %}
+                            <span class="badge bg-secondary text-white">Atanmamış</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Oluşturan:</strong> {{ task.creator.username }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Oluşturma Tarihi:</strong> {{ task.created_at.strftime('%d.%m.%Y %H:%M') }}
+                    </div>
+                </div>
+                
+                {% if task.due_date %}
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Bitiş Tarihi:</strong> 
+                        <span class="{% if task.due_date < moment.utcnow() and task.status != 'completed' %}text-danger fw-bold{% endif %}">
+                            {{ task.due_date.strftime('%d.%m.%Y') }}
+                        </span>
+                    </div>
+                    {% if task.completed_at %}
+                    <div class="col-md-6">
+                        <strong>Tamamlanma Tarihi:</strong> {{ task.completed_at.strftime('%d.%m.%Y %H:%M') }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                {% if task.description %}
+                <div class="mb-3">
+                    <strong>Açıklama:</strong>
+                    <div class="mt-2 p-3 bg-light rounded">
+                        {{ task.description|nl2br }}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Durum Güncelleme -->
+                {% if current_user.role in ['admin', 'manager'] or current_user in task.assignees %}
+                <div class="mt-4">
+                    <form method="POST" action="{{ url_for('update_task_status', task_id=task.id) }}">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="status" class="form-label"><strong>Durum Güncelle:</strong></label>
+                                <select class="form-select" id="status" name="status">
+                                    <option value="pending" {% if task.status == 'pending' %}selected{% endif %}>Beklemede</option>
+                                    <option value="in_progress" {% if task.status == 'in_progress' %}selected{% endif %}>Devam Ediyor</option>
+                                    <option value="completed" {% if task.status == 'completed' %}selected{% endif %}>Tamamlandı</option>
+                                    {% if current_user.role in ['admin', 'manager'] %}
+                                    <option value="cancelled" {% if task.status == 'cancelled' %}selected{% endif %}>İptal Edildi</option>
+                                    {% endif %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Güncelle
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Yorumlar -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5><i class="fas fa-comments"></i> Yorumlar</h5>
+            </div>
+            <div class="card-body">
+                <!-- Yeni Yorum Ekleme -->
+                <form method="POST" action="{{ url_for('add_comment', task_id=task.id) }}">
+                    <div class="mb-3">
+                        <label for="content" class="form-label">Yeni Yorum</label>
+                        <textarea class="form-control" id="content" name="content" rows="3" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus"></i> Yorum Ekle
+                    </button>
+                </form>
+                
+                <hr>
+                
+                <!-- Yorumlar Listesi -->
+                {% for comment in comments %}
+                <div class="border rounded p-3 mb-3">
+                    <div class="d-flex justify-content-between">
+                        <strong>{{ comment.user.username }}</strong>
+                        <small class="text-muted">{{ comment.created_at.strftime('%d.%m.%Y %H:%M') }}</small>
+                    </div>
+                    <div class="mt-2">
+                        {{ comment.content|nl2br }}
+                    </div>
+                </div>
+                {% else %}
+                <div class="text-center text-muted">
+                    <i class="fas fa-comment-slash"></i> Henüz yorum yok.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- Görev Bilgileri -->
+        <div class="card">
+            <div class="card-header">
+                <h6><i class="fas fa-info-circle"></i> Görev Bilgileri</h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <small class="text-muted">ID:</small><br>
+                    <strong>#{{ task.id }}</strong>
+                </div>
+                
+                <div class="mb-2">
+                    <small class="text-muted">Öncelik:</small><br>
+                    <span class="badge bg-{{ 'danger' if task.priority == 'urgent' else 'warning' if task.priority == 'high' else 'primary' if task.priority == 'medium' else 'secondary' }}">
+                        {{ task.priority.title() }}
+                    </span>
+                </div>
+                
+                <div class="mb-2">
+                    <small class="text-muted">Departman:</small><br>
+                    {% if task.assignees %}
+                        {% for assignee in task.assignees %}
+                        <strong>{{ assignee.department or 'Belirtilmemiş' }}</strong>{% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <strong>Belirtilmemiş</strong>
+                    {% endif %}
+                </div>
+                
+                <div class="mb-2">
+                    <small class="text-muted">Son Güncelleme:</small><br>
+                    <strong>{{ task.updated_at.strftime('%d.%m.%Y %H:%M') }}</strong>
+                </div>
+                
+                {% if task.due_date %}
+                {% set days_left = (task.due_date.date() - moment.utcnow().date()).days %}
+                <div class="mb-2">
+                    <small class="text-muted">Kalan Süre:</small><br>
+                    {% if task.status == 'completed' %}
+                        <span class="text-success"><i class="fas fa-check"></i> Tamamlandı</span>
+                    {% elif days_left < 0 %}
+                        <span class="text-danger"><i class="fas fa-exclamation-triangle"></i> {{ -days_left }} gün gecikme</span>
+                    {% elif days_left == 0 %}
+                        <span class="text-warning"><i class="fas fa-clock"></i> Bugün bitiyor</span>
+                    {% else %}
+                        <span class="text-info"><i class="fas fa-calendar"></i> {{ days_left }} gün</span>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Hızlı İşlemler -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6><i class="fas fa-bolt"></i> Hızlı İşlemler</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('index') }}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-arrow-left"></i> Görev Listesi
+                    </a>
+                    
+                    {% if current_user.role in ['admin', 'manager'] %}
+                    <a href="{{ url_for('create_task') }}" class="btn btn-outline-success btn-sm">
+                        <i class="fas fa-plus"></i> Yeni Görev
+                    </a>
+                    {% endif %}
+                    
+                    {% if current_user.role == 'admin' %}
+                    <a href="{{ url_for('stats') }}" class="btn btn-outline-info btn-sm">
+                        <i class="fas fa-chart-bar"></i> İstatistikler
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Otomatik kaydetme özelliği
+$(document).ready(function() {
+    $('#status').change(function() {
+        const newStatus = $(this).val();
+        if (newStatus === 'completed') {
+            if (confirm('Görevi tamamlandı olarak işaretlemek istediğinizden emin misiniz?')) {
+                $(this).closest('form').submit();
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+
+{% block title %}İstatistikler - Şirket Todo{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="fas fa-chart-bar"></i> İstatistikler</h2>
+        
+        <!-- Genel İstatistikler -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body text-center">
+                        <h3>{{ stats.total_tasks }}</h3>
+                        <p class="mb-0">Toplam Görev</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                        <h3>{{ stats.completed_tasks }}</h3>
+                        <p class="mb-0">Tamamlanan</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body text-center">
+                        <h3>{{ stats.pending_tasks }}</h3>
+                        <p class="mb-0">Beklemede</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body text-center">
+                        <h3>{{ stats.in_progress_tasks }}</h3>
+                        <p class="mb-0">Devam Eden</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tamamlanma Oranı -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-percentage"></i> Genel Tamamlanma Oranı</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h2 class="text-success">%{{ stats.completion_rate }}</h2>
+                                <p class="text-muted mb-0">{{ stats.completed_tasks }}/{{ stats.total_tasks }} görev tamamlandı</p>
+                            </div>
+                            <div>
+                                <div class="progress" style="width: 150px; height: 20px;">
+                                    <div class="progress-bar bg-success" style="width: {{ stats.completion_rate }}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-chart-pie"></i> Görev Dağılımı</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="taskChart" width="300" height="150"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Departman İstatistikleri -->
+        {% if current_user.role == 'admin' and stats.dept_stats %}
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-building"></i> Departman Bazında İstatistikler</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Departman</th>
+                                <th>Toplam Görev</th>
+                                <th>Tamamlanan</th>
+                                <th>Tamamlanma Oranı</th>
+                                <th>Durum</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for dept in stats.dept_stats %}
+                            <tr>
+                                <td><strong>{{ dept.department }}</strong></td>
+                                <td>{{ dept.total }}</td>
+                                <td>{{ dept.completed }}</td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <span class="me-2">%{{ dept.completion_rate }}</span>
+                                        <div class="progress flex-grow-1" style="height: 8px;">
+                                            <div class="progress-bar 
+                                                {% if dept.completion_rate >= 80 %}bg-success
+                                                {% elif dept.completion_rate >= 60 %}bg-info  
+                                                {% elif dept.completion_rate >= 40 %}bg-warning
+                                                {% else %}bg-danger{% endif %}" 
+                                                style="width: {{ dept.completion_rate }}%"></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if dept.completion_rate >= 80 %}
+                                        <span class="badge bg-success">Çok İyi</span>
+                                    {% elif dept.completion_rate >= 60 %}
+                                        <span class="badge bg-info">İyi</span>
+                                    {% elif dept.completion_rate >= 40 %}
+                                        <span class="badge bg-warning">Orta</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Düşük</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Performans Metrikleri -->
+        <div class="row mt-4">
+            <div class="col-md-4">
+                <div class="card border-success">
+                    <div class="card-body text-center">
+                        <i class="fas fa-trophy text-success fa-2x mb-2"></i>
+                        <h5>En Başarılı Departman</h5>
+                        {% if stats.dept_stats %}
+                            {% set best_dept = stats.dept_stats|sort(attribute='completion_rate', reverse=true)|first %}
+                            <p class="mb-0"><strong>{{ best_dept.department }}</strong></p>
+                            <small class="text-success">%{{ best_dept.completion_rate }} tamamlanma</small>
+                        {% else %}
+                            <p class="text-muted">Veri yok</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card border-info">
+                    <div class="card-body text-center">
+                        <i class="fas fa-clock text-info fa-2x mb-2"></i>
+                        <h5>Ortalama Performans</h5>
+                        {% if stats.dept_stats %}
+                            {% set avg_rate = (stats.dept_stats|sum(attribute='completion_rate') / stats.dept_stats|length)|round(1) %}
+                            <p class="mb-0"><strong>%{{ avg_rate }}</strong></p>
+                            <small class="text-info">Departman ortalaması</small>
+                        {% else %}
+                            <p class="text-muted">Veri yok</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card border-warning">
+                    <div class="card-body text-center">
+                        <i class="fas fa-exclamation-triangle text-warning fa-2x mb-2"></i>
+                        <h5>Dikkat Gereken</h5>
+                        {% if stats.dept_stats %}
+                            {% set needs_attention = stats.dept_stats|selectattr('completion_rate', 'lt', 50)|list|length %}
+                            <p class="mb-0"><strong>{{ needs_attention }}</strong></p>
+                            <small class="text-warning">Departman dikkat gerektiriyor</small>
+                        {% else %}
+                            <p class="text-muted">Veri yok</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Pasta Grafik
+const ctx = document.getElementById('taskChart').getContext('2d');
+const taskChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Tamamlanan', 'Devam Eden', 'Beklemede'],
+        datasets: [{
+            data: [{{ stats.completed_tasks }}, {{ stats.in_progress_tasks }}, {{ stats.pending_tasks }}],
+            backgroundColor: [
+                '#28a745',
+                '#17a2b8', 
+                '#ffc107'
+            ],
+            borderWidth: 2
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'bottom',
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

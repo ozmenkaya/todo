@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block title %}Yeni Anımsatıcı - Şirket Todo{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="fas fa-bell"></i> Yeni Anımsatıcı Oluştur</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" id="reminderForm">
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Anımsatıcı Başlığı *</label>
+                        <input type="text" class="form-control" id="title" name="title" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Açıklama</label>
+                        <textarea class="form-control" id="description" name="description" rows="3" 
+                                  placeholder="Anımsatıcı hakkında detaylar..."></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="reminder_date" class="form-label">Tarih *</label>
+                                <input type="date" class="form-control" id="reminder_date" name="reminder_date" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="reminder_time" class="form-label">Saat</label>
+                                <input type="time" class="form-control" id="reminder_time" name="reminder_time" value="09:00">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Hızlı Tarih Seçenekleri -->
+                    <div class="mb-3">
+                        <label class="form-label">Hızlı Seçenekler:</label>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="setQuickDate(0)">Bugün</button>
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="setQuickDate(1)">Yarın</button>
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="setQuickDate(7)">1 Hafta</button>
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="setQuickDate(30)">1 Ay</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Hızlı Saat Seçenekleri -->
+                    <div class="mb-3">
+                        <label class="form-label">Sık Kullanılan Saatler:</label>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setQuickTime('09:00')">09:00</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setQuickTime('12:00')">12:00</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setQuickTime('14:00')">14:00</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setQuickTime('17:00')">17:00</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setQuickTime('20:00')">20:00</button>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Anımsatıcı Oluştur
+                        </button>
+                        <a href="{{ url_for('reminders') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> İptal
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Anımsatıcı İpuçları -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6><i class="fas fa-lightbulb"></i> Anımsatıcı İpuçları</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-primary">📋 Etkili Anımsatıcılar:</h6>
+                        <ul class="small">
+                            <li>Açık ve net başlıklar kullanın</li>
+                            <li>Önemli detayları açıklama bölümüne yazın</li>
+                            <li>Gerçekçi tarih ve saatler belirleyin</li>
+                            <li>Düzenli toplantılar için tekrarlayan anımsatıcılar</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-success">⏰ Zaman Yönetimi:</h6>
+                        <ul class="small">
+                            <li>Önemli işler için erken anımsatıcılar</li>
+                            <li>Günlük rutinler için sabit saatler</li>
+                            <li>Proje deadlineları için haftalık hatırlatmalar</li>
+                            <li>Kişisel gelişim için düzenli aralıklar</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Bugünün tarihini minimum tarih olarak ayarla
+    const today = new Date().toISOString().split('T')[0];
+    $('#reminder_date').attr('min', today);
+    
+    // Varsayılan olarak bugünü seç
+    $('#reminder_date').val(today);
+});
+
+// Hızlı tarih seçimi
+function setQuickDate(daysFromNow) {
+    const date = new Date();
+    date.setDate(date.getDate() + daysFromNow);
+    const dateString = date.toISOString().split('T')[0];
+    $('#reminder_date').val(dateString);
+}
+
+// Hızlı saat seçimi
+function setQuickTime(time) {
+    $('#reminder_time').val(time);
+}
+
+// Form doğrulama
+$('#reminderForm').on('submit', function(e) {
+    const selectedDate = new Date($('#reminder_date').val() + ' ' + $('#reminder_time').val());
+    const now = new Date();
+    
+    if (selectedDate < now) {
+        e.preventDefault();
+        alert('Anımsatıcı tarihi geçmiş bir zaman olamaz!');
+        return false;
+    }
+    
+    const title = $('#title').val().trim();
+    if (title.length < 3) {
+        e.preventDefault();
+        alert('Anımsatıcı başlığı en az 3 karakter olmalıdır!');
+        $('#title').focus();
+        return false;
+    }
+});
+
+// Karakter sayacı
+$('#title').on('input', function() {
+    const length = $(this).val().length;
+    const maxLength = 200;
+    
+    if (length > maxLength - 20) {
+        $(this).addClass('border-warning');
+    } else {
+        $(this).removeClass('border-warning');
+    }
+    
+    if (length > maxLength) {
+        $(this).addClass('border-danger');
+    } else {
+        $(this).removeClass('border-danger');
+    }
+});
+
+$('#description').on('input', function() {
+    const length = $(this).val().length;
+    const maxLength = 500;
+    
+    if (length > maxLength - 50) {
+        $(this).addClass('border-warning');
+    } else {
+        $(this).removeClass('border-warning');
+    }
+});
+</script>
+{% endblock %}

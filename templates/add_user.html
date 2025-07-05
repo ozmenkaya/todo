@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}Yeni Kullanıcı - Şirket Todo{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="fas fa-user-plus"></i> Yeni Kullanıcı Ekle</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Kullanıcı Adı *</label>
+                                <input type="text" class="form-control" id="username" name="username" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="email" class="form-label">E-posta *</label>
+                                <input type="email" class="form-control" id="email" name="email" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Şifre *</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                        <small class="form-text text-muted">Minimum 6 karakter olmalıdır.</small>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="role" class="form-label">Rol *</label>
+                                <select class="form-select" id="role" name="role" required>
+                                    <option value="">Rol seçin...</option>
+                                    <option value="employee">Çalışan</option>
+                                    <option value="manager">Manager</option>
+                                    <option value="admin">Admin</option>
+                                </select>
+                                <small class="form-text text-muted">
+                                    <strong>Çalışan:</strong> Sadece kendi görevlerini görür<br>
+                                    <strong>Manager:</strong> Departmanındaki görevleri yönetir<br>
+                                    <strong>Admin:</strong> Tüm sistemi yönetir
+                                </small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="department" class="form-label">Departman</label>
+                                <input type="text" class="form-control" id="department" name="department" 
+                                       placeholder="örn: IT, İK, Pazarlama">
+                                <small class="form-text text-muted">Manager'lar aynı departmandaki görevleri yönetir.</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Kullanıcı Oluştur
+                        </button>
+                        <a href="{{ url_for('users') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> İptal
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Rol Açıklamaları -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6><i class="fas fa-info-circle"></i> Rol Açıklamaları</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6 class="text-secondary"><i class="fas fa-user"></i> Çalışan</h6>
+                                <ul class="small mb-0">
+                                    <li>Sadece kendine atanan görevleri görür</li>
+                                    <li>Görev durumunu güncelleyebilir</li>
+                                    <li>Yorum ekleyebilir</li>
+                                    <li>Yeni görev oluşturamaz</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-warning bg-opacity-25">
+                            <div class="card-body">
+                                <h6 class="text-warning"><i class="fas fa-user-tie"></i> Manager</h6>
+                                <ul class="small mb-0">
+                                    <li>Departmanındaki tüm görevleri görür</li>
+                                    <li>Yeni görev oluşturabilir</li>
+                                    <li>Departman görevlerini yönetebilir</li>
+                                    <li>İstatistikleri görür</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-danger bg-opacity-25">
+                            <div class="card-body">
+                                <h6 class="text-danger"><i class="fas fa-user-shield"></i> Admin</h6>
+                                <ul class="small mb-0">
+                                    <li>Tüm görevleri görür ve yönetir</li>
+                                    <li>Kullanıcı ekler/yönetir</li>
+                                    <li>Tüm istatistikleri görür</li>
+                                    <li>Sistem ayarlarını yönetir</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Şifre doğrulama
+    $('#password').on('input', function() {
+        const password = $(this).val();
+        if (password.length < 6) {
+            $(this).addClass('is-invalid');
+        } else {
+            $(this).removeClass('is-invalid').addClass('is-valid');
+        }
+    });
+    
+    // Form doğrulama
+    $('form').on('submit', function(e) {
+        const password = $('#password').val();
+        if (password.length < 6) {
+            e.preventDefault();
+            alert('Şifre en az 6 karakter olmalıdır!');
+            $('#password').focus();
+        }
+    });
+});
+</script>
+{% endblock %}

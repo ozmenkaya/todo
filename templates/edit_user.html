@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+
+{% block title %}Kullanıcı Düzenle - Şirket Todo{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="fas fa-user-edit"></i> Kullanıcı Düzenle: {{ user.username }}</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" id="editUserForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Kullanıcı Adı *</label>
+                                <input type="text" class="form-control" id="username" name="username" 
+                                       value="{{ user.username }}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="email" class="form-label">E-posta *</label>
+                                <input type="email" class="form-control" id="email" name="email" 
+                                       value="{{ user.email }}" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="new_password" class="form-label">Yeni Şifre</label>
+                        <input type="password" class="form-control" id="new_password" name="new_password">
+                        <small class="form-text text-muted">
+                            Şifreyi değiştirmek istemiyorsanız boş bırakın. Minimum 6 karakter olmalıdır.
+                        </small>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="role" class="form-label">Rol *</label>
+                                <select class="form-select" id="role" name="role" required>
+                                    <option value="employee" {% if user.role == 'employee' %}selected{% endif %}>Çalışan</option>
+                                    <option value="manager" {% if user.role == 'manager' %}selected{% endif %}>Manager</option>
+                                    <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
+                                </select>
+                                {% if user.id == current_user.id %}
+                                    <small class="form-text text-warning">
+                                        <i class="fas fa-warning"></i> Kendi rolünüzü değiştirirken dikkatli olun!
+                                    </small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="department" class="form-label">Departman</label>
+                                <input type="text" class="form-control" id="department" name="department" 
+                                       value="{{ user.department or '' }}" placeholder="örn: IT, İK, Pazarlama">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Değişiklikleri Kaydet
+                        </button>
+                        <a href="{{ url_for('users') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> İptal
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Kullanıcı İstatistikleri -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6><i class="fas fa-chart-bar"></i> {{ user.username }} - İstatistikler</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h5>{{ user.task_stats.assigned }}</h5>
+                                <small>Atanan Görev</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h5>{{ user.task_stats.created }}</h5>
+                                <small>Oluşturulan Görev</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h5>{{ user.task_stats.reminders }}</h5>
+                                <small>Anımsatıcı</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h5>{{ user.task_stats.comments }}</h5>
+                                <small>Yorum</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <small class="text-muted">
+                            <strong>Hesap Oluşturma:</strong><br>
+                            {{ user.created_at.strftime('%d.%m.%Y %H:%M') }}
+                        </small>
+                    </div>
+                    <div class="col-md-6">
+                        <small class="text-muted">
+                            <strong>Tamamlanan Görevler:</strong><br>
+                            {{ user.task_stats.completed }} / {{ user.task_stats.assigned }}
+                            {% if user.task_stats.assigned > 0 %}
+                                ({{ ((user.task_stats.completed / user.task_stats.assigned) * 100)|round(1) }}%)
+                            {% endif %}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Güvenlik Uyarıları -->
+        <div class="card mt-4">
+            <div class="card-header bg-warning">
+                <h6 class="mb-0"><i class="fas fa-shield-alt"></i> Güvenlik Notları</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-warning">⚠️ Rol Değişikliği:</h6>
+                        <ul class="small">
+                            <li>Admin → Manager/Employee: Sistem yönetimi erişimi kaldırılır</li>
+                            <li>Manager → Employee: Görev atama yetkisi kaldırılır</li>
+                            <li>Employee → Manager/Admin: Yeni yetkiler verilir</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-info">🔒 Şifre Güvenliği:</h6>
+                        <ul class="small">
+                            <li>Güçlü şifreler kullanın (en az 6 karakter)</li>
+                            <li>Düzenli olarak şifreleri güncelleyin</li>
+                            <li>Şifre değişikliği kullanıcıya bildirilmez</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Şifre doğrulama
+    $('#new_password').on('input', function() {
+        const password = $(this).val();
+        if (password.length > 0 && password.length < 6) {
+            $(this).addClass('is-invalid');
+        } else {
+            $(this).removeClass('is-invalid').addClass('is-valid');
+        }
+    });
+    
+    // Form doğrulama
+    $('#editUserForm').on('submit', function(e) {
+        const newPassword = $('#new_password').val();
+        if (newPassword.length > 0 && newPassword.length < 6) {
+            e.preventDefault();
+            alert('Yeni şifre en az 6 karakter olmalıdır!');
+            $('#new_password').focus();
+            return false;
+        }
+        
+        // Admin sayısı kontrolü
+        const currentRole = '{{ user.role }}';
+        const newRole = $('#role').val();
+        const isCurrentUser = {{ 'true' if user.id == current_user.id else 'false' }};
+        
+        if (currentRole === 'admin' && newRole !== 'admin' && isCurrentUser) {
+            if (!confirm('Kendi admin rolünüzü kaldırmak istediğinizden emin misiniz? Bu işlem geri alınamaz!')) {
+                e.preventDefault();
+                return false;
+            }
+        }
+    });
+    
+    // Rol değişikliği uyarısı
+    $('#role').on('change', function() {
+        const originalRole = '{{ user.role }}';
+        const newRole = $(this).val();
+        const isCurrentUser = {{ 'true' if user.id == current_user.id else 'false' }};
+        
+        if (originalRole !== newRole) {
+            let message = `Rol "${originalRole}" → "${newRole}" olarak değiştirilecek.`;
+            if (isCurrentUser) {
+                message += ' Bu kendi hesabınız!';
+            }
+            console.log(message);
+        }
+    });
+});
+</script>
+{% endblock %}

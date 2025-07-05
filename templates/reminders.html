@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block title %}Anımsatıcılarım - Şirket Todo{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-bell"></i> Anımsatıcılarım</h2>
+            <a href="{{ url_for('add_reminder') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Yeni Anımsatıcı
+            </a>
+        </div>
+
+        <!-- Anımsatıcı Filtreleri -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="showCompleted" checked>
+                            <label class="form-check-label" for="showCompleted">
+                                Tamamlananları göster
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <select class="form-select" id="timeFilter">
+                            <option value="">Tüm Zamanlar</option>
+                            <option value="overdue">Gecikmiş</option>
+                            <option value="today">Bugün</option>
+                            <option value="tomorrow">Yarın</option>
+                            <option value="week">Bu Hafta</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <input type="text" class="form-control" id="searchReminder" placeholder="Anımsatıcı ara...">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Anımsatıcı Özeti -->
+        <div class="row mb-4">
+            {% set total_reminders = reminders|length %}
+            {% set completed_reminders = reminders|selectattr("is_completed")|list|length %}
+            {% set pending_reminders = total_reminders - completed_reminders %}
+            {% set today_reminders = reminders|selectattr("reminder_date", "gt", moment.utcnow().replace(hour=0, minute=0, second=0))|selectattr("reminder_date", "lt", moment.utcnow().replace(hour=23, minute=59, second=59))|selectattr("is_completed", "eq", false)|list|length %}
+            
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body text-center">
+                        <h5>{{ total_reminders }}</h5>
+                        <small>Toplam</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body text-center">
+                        <h5>{{ pending_reminders }}</h5>
+                        <small>Beklemede</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                        <h5>{{ completed_reminders }}</h5>
+                        <small>Tamamlandı</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body text-center">
+                        <h5>{{ today_reminders }}</h5>
+                        <small>Bugün</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Anımsatıcı Listesi -->
+        <div class="row" id="reminderList">
+            {% for reminder in reminders %}
+                {% set is_overdue = reminder.reminder_date < moment.utcnow() and not reminder.is_completed %}
+                {% set is_today = reminder.reminder_date.date() == moment.utcnow().date() %}
+                
+                <div class="col-md-6 col-lg-4 reminder-item" 
+                     data-completed="{{ reminder.is_completed|lower }}"
+                     data-title="{{ reminder.title.lower() }}"
+                     data-date="{{ reminder.reminder_date.isoformat() }}"
+                     data-overdue="{{ is_overdue|lower }}"
+                     data-today="{{ is_today|lower }}">
+                    <div class="card reminder-card 
+                        {% if reminder.is_completed %}reminder-completed
+                        {% elif is_overdue %}reminder-overdue
+                        {% elif is_today %}reminder-today
+                        {% endif %}">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0 {% if reminder.is_completed %}text-decoration-line-through{% endif %}">
+                                {{ reminder.title }}
+                            </h6>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <form method="POST" action="{{ url_for('complete_reminder', reminder_id=reminder.id) }}" class="d-inline">
+                                            <button type="submit" class="dropdown-item">
+                                                <i class="fas fa-{% if reminder.is_completed %}undo{% else %}check{% endif %}"></i>
+                                                {% if reminder.is_completed %}Tamamlanmadı İşaretle{% else %}Tamamlandı İşaretle{% endif %}
+                                            </button>
+                                        </form>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <form method="POST" action="{{ url_for('delete_reminder', reminder_id=reminder.id) }}" 
+                                              onsubmit="return confirm('Bu anımsatıcıyı silmek istediğinizden emin misiniz?')" class="d-inline">
+                                            <button type="submit" class="dropdown-item text-danger">
+                                                <i class="fas fa-trash"></i> Sil
+                                            </button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            {% if reminder.description %}
+                            <p class="card-text {% if reminder.is_completed %}text-muted{% endif %}">
+                                {{ reminder.description[:100] }}{% if reminder.description|length > 100 %}...{% endif %}
+                            </p>
+                            {% endif %}
+                            
+                            <div class="row">
+                                <div class="col-6">
+                                    <small class="{% if is_overdue %}text-danger fw-bold{% elif is_today %}text-success fw-bold{% else %}text-muted{% endif %}">
+                                        <i class="fas fa-calendar"></i> 
+                                        {{ reminder.reminder_date.strftime('%d.%m.%Y') }}
+                                    </small>
+                                </div>
+                                <div class="col-6 text-end">
+                                    <small class="{% if is_overdue %}text-danger fw-bold{% elif is_today %}text-success fw-bold{% else %}text-muted{% endif %}">
+                                        <i class="fas fa-clock"></i> 
+                                        {{ reminder.reminder_date.strftime('%H:%M') }}
+                                    </small>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-2">
+                                {% if reminder.is_completed %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check"></i> Tamamlandı
+                                    </span>
+                                {% elif is_overdue %}
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-exclamation-triangle"></i> Gecikmiş
+                                    </span>
+                                {% elif is_today %}
+                                    <span class="badge bg-info">
+                                        <i class="fas fa-bell"></i> Bugün
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary">
+                                        <i class="fas fa-clock"></i> Beklemede
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="col-12">
+                    <div class="alert alert-info text-center">
+                        <i class="fas fa-bell-slash"></i> Henüz anımsatıcınız yok.
+                        <a href="{{ url_for('add_reminder') }}" class="btn btn-primary btn-sm ms-2">
+                            İlk anımsatıcıyı oluştur
+                        </a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Filtreleme fonksiyonu
+    function filterReminders() {
+        const showCompleted = $('#showCompleted').is(':checked');
+        const timeFilter = $('#timeFilter').val().toLowerCase();
+        const searchTerm = $('#searchReminder').val().toLowerCase();
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+        const weekEnd = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+        
+        $('.reminder-item').each(function() {
+            const $item = $(this);
+            const isCompleted = $item.data('completed') === true;
+            const title = $item.data('title');
+            const reminderDate = new Date($item.data('date'));
+            const isOverdue = $item.data('overdue') === true;
+            const isToday = $item.data('today') === true;
+            
+            let show = true;
+            
+            // Tamamlanan filtresi
+            if (!showCompleted && isCompleted) {
+                show = false;
+            }
+            
+            // Zaman filtresi
+            if (timeFilter) {
+                switch(timeFilter) {
+                    case 'overdue':
+                        show = show && isOverdue;
+                        break;
+                    case 'today':
+                        show = show && isToday;
+                        break;
+                    case 'tomorrow':
+                        show = show && reminderDate >= tomorrow && reminderDate < new Date(tomorrow.getTime() + 24 * 60 * 60 * 1000);
+                        break;
+                    case 'week':
+                        show = show && reminderDate >= today && reminderDate <= weekEnd;
+                        break;
+                }
+            }
+            
+            // Arama filtresi
+            if (searchTerm && !title.includes(searchTerm)) {
+                show = false;
+            }
+            
+            $item.toggle(show);
+        });
+    }
+    
+    // Filtre değişikliklerini dinle
+    $('#showCompleted, #timeFilter, #searchReminder').on('change keyup', filterReminders);
+});
+</script>
+{% endblock %}
