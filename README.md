@@ -1,4 +1,4 @@
-# Şirket Todo Yönetim Sistemi
+# Helmex Todo Yönetim Sistemi
 
 Modern, güvenli ve kullanıcı dostu bir şirket içi todo/görev yönetim sistemi. Python Flask ile geliştirilmiştir.
 
