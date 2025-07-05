@@ -46,15 +46,7 @@ services:
     value: f207c647dae4dd859b20bf29a98b82086f5b3e00c078bcafd35d622781b0200a
   - key: FLASK_ENV
     value: production
-  envs:
-  - key: SECRET_KEY
-    value: f207c647dae4dd859b20bf29a98b82086f5b3e00c078bcafd35d622781b0200a
-  - key: FLASK_ENV
-    value: production
-  - key: PORT
-    value: "8080"
-  # Mail konfigürasyonu (Gmail SMTP için)
-  # Bu değerleri gerçek mail bilgilerinizle değiştirin
+  # Mail konfigürasyonu (backup bildirimler için)
   - key: MAIL_SERVER
     value: smtp.gmail.com
   - key: MAIL_PORT
@@ -62,11 +54,11 @@ services:
   - key: MAIL_USE_TLS
     value: "true"
   - key: MAIL_USERNAME
-    value: your-email@gmail.com
+    value: info@helmex.com.tr
   - key: MAIL_PASSWORD
-    value: your-app-password
+    value: 4866Pars
   - key: MAIL_DEFAULT_SENDER
-    value: noreply@helmex.com
+    value: noreply@helmex.com.tr
 
 # PostgreSQL database eklemek isterseniz bu yorumu kaldırın:
 # databases:
