@@ -1,7 +1,6 @@
 name: todo-management-app
 services:
 - name: web
-  source_dir: .
   github:
     repo: ozmenkaya/todo
     branch: main
@@ -10,7 +9,7 @@ services:
   run_command: gunicorn app:app --bind 0.0.0.0:8080
   environment_slug: python
   instance_count: 1
-  instance_size_slug: basic-xxs  # $5/ay
+  instance_size_slug: basic-xxs
   envs:
   - key: SECRET_KEY
     value: f207c647dae4dd859b20bf29a98b82086f5b3e00c078bcafd35d622781b0200a
@@ -26,22 +25,3 @@ services:
     timeout_seconds: 5
     failure_threshold: 3
     success_threshold: 1
-
-# PostgreSQL database eklemek isterseniz bu yorumu kaldırın:
-# databases:
-# - name: todo-db
-#   engine: PG
-#   size: db-s-dev-database  # $7/ay
-#   num_nodes: 1
-
-# Redis cache eklemek isterseniz (ilerisi için):
-# - name: todo-cache
-#   engine: REDIS
-#   size: db-s-dev-database
-
-# Custom domain eklemek isterseniz:
-# domains:
-# - domain: yourdomain.com
-#   type: PRIMARY
-# - domain: www.yourdomain.com
-#   type: ALIAS

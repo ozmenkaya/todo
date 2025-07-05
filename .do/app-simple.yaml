@@ -1,0 +1,20 @@
+name: todo-app
+services:
+- name: web
+  source_dir: /
+  github:
+    repo: ozmenkaya/todo-app
+    branch: main
+    deploy_on_push: true
+  run_command: python app.py
+  environment_slug: python
+  instance_count: 1
+  instance_size_slug: basic-xxs
+  envs:
+  - key: SECRET_KEY
+    value: f207c647dae4dd859b20bf29a98b82086f5b3e00c078bcafd35d622781b0200a
+  - key: FLASK_ENV
+    value: production
+  - key: PORT
+    value: "8080"
+  http_port: 8080
