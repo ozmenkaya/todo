@@ -688,16 +688,22 @@ def send_urgent_task_email(task, assignees):
                     </div>
                     '''
                 )
-                mail.send(msg)
-                mail_sent_count += 1
-                print(f"✅ Mail gönderildi: {assignee.email}")
+                try:
+                    mail.send(msg)
+                    mail_sent_count += 1
+                    print(f"✅ Mail gönderildi: {assignee.email}")
+                except Exception as mail_error:
+                    print(f"❌ Mail gönderme hatası ({assignee.email}): {mail_error}")
             else:
                 print(f"❌ Email adresi yok: {assignee.username}")
         
         print(f"📊 Toplam {mail_sent_count} mail gönderildi")
         return True
     except Exception as e:
-        print(f"Mail gönderme hatası: {e}")
+        print(f"❌ Genel mail gönderme hatası: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
         return False
 
 # Yedekleme sistemi routes
@@ -767,6 +773,55 @@ def download_backup(filename):
     
     backup_dir = 'backups'
     return send_from_directory(backup_dir, filename, as_attachment=True)
+
+@app.route('/debug/mail')
+@login_required
+def debug_mail():
+    """Mail konfigürasyonunu debug etmek için"""
+    if not current_user.role == 'admin':
+        flash('Bu sayfaya erişim yetkiniz yok.')
+        return redirect(url_for('index'))
+    
+    debug_info = {
+        'MAIL_SERVER': app.config.get('MAIL_SERVER'),
+        'MAIL_PORT': app.config.get('MAIL_PORT'),
+        'MAIL_USE_TLS': app.config.get('MAIL_USE_TLS'),
+        'MAIL_USERNAME': app.config.get('MAIL_USERNAME'),
+        'MAIL_PASSWORD': '***' if app.config.get('MAIL_PASSWORD') else None,
+        'MAIL_DEFAULT_SENDER': app.config.get('MAIL_DEFAULT_SENDER'),
+        'Flask Mail Extension': 'Loaded' if 'mail' in globals() else 'Not Loaded'
+    }
+    
+    return jsonify(debug_info)
+
+@app.route('/debug/test-mail')
+@login_required
+def test_mail():
+    """Test mail gönderim"""
+    if not current_user.role == 'admin':
+        flash('Bu sayfaya erişim yetkiniz yok.')
+        return redirect(url_for('index'))
+    
+    try:
+        if not app.config.get('MAIL_USERNAME'):
+            return jsonify({'status': 'error', 'message': 'Mail konfigürasyonu eksik'})
+        
+        if not current_user.email:
+            return jsonify({'status': 'error', 'message': 'Kullanıcınızın email adresi yok'})
+        
+        msg = Message(
+            subject='🧪 Test Mail - Helmex Todo',
+            recipients=[current_user.email],
+            html='''
+            <h2>Test Mail</h2>
+            <p>Bu bir test mailidir. Mail sistemi çalışıyor! ✅</p>
+            <p>Gönderim zamanı: ''' + datetime.now().strftime('%d.%m.%Y %H:%M') + '''</p>
+            '''
+        )
+        mail.send(msg)
+        return jsonify({'status': 'success', 'message': f'Test mail gönderildi: {current_user.email}'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'Mail gönderme hatası: {str(e)}'})
 
 if __name__ == '__main__':
     import os
