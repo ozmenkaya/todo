@@ -91,6 +91,11 @@
                                 <button type="submit" class="btn btn-primary">
                                     <i class="fas fa-save"></i> Güncelle
                                 </button>
+                                {% if current_user.role == 'admin' or task.created_by == current_user.id %}
+                                <button type="button" class="btn btn-danger ms-2" onclick="confirmDelete({{ task.id }}, '{{ task.title }}')">
+                                    <i class="fas fa-trash"></i> Sil
+                                </button>
+                                {% endif %}
                             </div>
                         </div>
                     </form>
@@ -233,5 +238,17 @@ $(document).ready(function() {
         }
     });
 });
+
+// Görev silme onayı
+function confirmDelete(taskId, taskTitle) {
+    if (confirm(`"${taskTitle}" görevini silmek istediğinizden emin misiniz?\n\nBu işlem geri alınamaz!`)) {
+        // Form oluştur ve submit et
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/delete_task/${taskId}`;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
 </script>
 {% endblock %}

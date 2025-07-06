@@ -912,6 +912,39 @@ def test_mail():
     except Exception as e:
         return jsonify({'status': 'error', 'message': f'Mail gönderme hatası: {str(e)}'})
 
+# Görev silme (admin ve görev sahibi manager)
+@app.route('/delete_task/<int:task_id>', methods=['POST'])
+@login_required
+def delete_task(task_id):
+    task = Task.query.get_or_404(task_id)
+    
+    # Yetki kontrolü - admin veya görev oluşturan kişi silebilir
+    if current_user.role != 'admin' and task.created_by != current_user.id:
+        flash('Bu görevi silme yetkiniz yok!')
+        return redirect(url_for('index'))
+    
+    try:
+        # Görev başlığını flash mesajı için sakla
+        task_title = task.title
+        
+        # İlişkili yorumları sil
+        Comment.query.filter_by(task_id=task_id).delete()
+        
+        # Görev atamalarını temizle (Many-to-Many ilişki otomatik temizlenir)
+        task.assignees.clear()
+        
+        # Görevi sil
+        db.session.delete(task)
+        db.session.commit()
+        
+        flash(f'Görev "{task_title}" başarıyla silindi!')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Görev silinirken hata oluştu: {str(e)}')
+    
+    return redirect(url_for('index'))
+
 if __name__ == '__main__':
     import os
     import time
