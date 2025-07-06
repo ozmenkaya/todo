@@ -1,10 +1,12 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory, send_from_directory
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_mail import Mail, Message
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 import os
+
+# Models import
+from models import db, User, Task, Comment, Reminder, task_assignments
 
 # Jinja2 filtre fonksiyonları
 def nl2br(value):
@@ -49,7 +51,8 @@ app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@helmex.com')
 
-db = SQLAlchemy(app)
+# Initialize extensions with app
+db.init_app(app)
 mail = Mail(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -58,71 +61,6 @@ login_manager.login_view = 'login'
 # Jinja2 filtrelerini kaydet
 app.jinja_env.filters['nl2br'] = nl2br
 app.jinja_env.globals['moment'] = type('obj', (object,), {'utcnow': moment_utcnow})
-
-# Many-to-Many ilişki tablosu (görev atamaları için)
-task_assignments = db.Table('task_assignments',
-    db.Column('task_id', db.Integer, db.ForeignKey('task.id'), primary_key=True),
-    db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True)
-)
-
-# Veritabanı Modelleri
-class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(120), nullable=False)
-    role = db.Column(db.String(20), default='employee')  # 'admin', 'manager', 'employee'
-    department = db.Column(db.String(50))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    # İlişkiler
-    assigned_tasks = db.relationship('Task', secondary=task_assignments, back_populates='assignees', lazy='dynamic')
-    created_tasks = db.relationship('Task', foreign_keys='Task.created_by', lazy='dynamic')
-
-class Task(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(200), nullable=False)
-    description = db.Column(db.Text)
-    status = db.Column(db.String(20), default='pending')  # 'pending', 'in_progress', 'completed', 'cancelled'
-    priority = db.Column(db.String(10), default='medium')  # 'low', 'medium', 'high', 'urgent'
-    due_date = db.Column(db.DateTime)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    completed_at = db.Column(db.DateTime)
-    
-    # Foreign Keys
-    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    
-    # İlişkiler
-    assignees = db.relationship('User', secondary=task_assignments, back_populates='assigned_tasks')
-    creator = db.relationship('User', foreign_keys=[created_by], overlaps="created_tasks")
-
-class Comment(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    content = db.Column(db.Text, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    # Foreign Keys
-    task_id = db.Column(db.Integer, db.ForeignKey('task.id'), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    
-    # İlişkiler
-    task = db.relationship('Task', backref='comments')
-    user = db.relationship('User', backref='comments')
-
-class Reminder(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(200), nullable=False)
-    description = db.Column(db.Text)
-    reminder_date = db.Column(db.DateTime, nullable=False)
-    is_completed = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    # Foreign Key
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    
-    # İlişki
-    user = db.relationship('User', backref='reminders')
 
 @login_manager.user_loader
 def load_user(user_id):

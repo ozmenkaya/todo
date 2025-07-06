@@ -2,9 +2,11 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Sistem paketlerini yükle
+# Sistem paketlerini yükle (PostgreSQL client dahil)
 RUN apt-get update && apt-get install -y \
     gcc \
+    postgresql-client \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Python gereksinimlerini kopyala ve yükle
@@ -20,11 +22,11 @@ RUN chown -R app:app /app
 USER app
 
 # Port'u belirt
-EXPOSE 5004
+EXPOSE 8080
 
 # Health check ekle
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:5004/ || exit 1
+    CMD curl -f http://localhost:8080/ || exit 1
 
 # Uygulamayı başlat
-CMD ["python", "app.py"]
+CMD ["python", "start_app.py"]

@@ -36,6 +36,24 @@ def safe_start():
     max_attempts = 3
     for attempt in range(max_attempts):
         try:
+            # PostgreSQL schema fix (ilk çalıştırmada)
+            if database_url and 'postgresql' in database_url.lower() and attempt == 0:
+                print("🛠️ PostgreSQL schema fix çalıştırılıyor...")
+                try:
+                    # Fix_postgresql_schema import ve çalıştırma
+                    import sys
+                    sys.path.append('.')
+                    
+                    from fix_postgresql_schema import fix_postgresql_schema
+                    if fix_postgresql_schema():
+                        print("✅ PostgreSQL schema fix başarılı")
+                    else:
+                        print("⚠️ PostgreSQL schema fix başarısız, normal başlatma devam ediyor")
+                except ImportError as e:
+                    print(f"⚠️ Schema fix import hatası: {e}")
+                except Exception as e:
+                    print(f"⚠️ Schema fix hatası: {e}")
+            
             with app.app_context():
                 print(f"⏳ Database bağlantısı test ediliyor... (deneme {attempt + 1})")
                 

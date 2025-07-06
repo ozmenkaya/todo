@@ -1,14 +1,21 @@
-name: todo-management-app
+name: helmex-todo-management
 services:
 - name: web
+  source_dir: /
   github:
     repo: ozmenkaya/todo
     branch: main
     deploy_on_push: true
+  dockerfile_path: Dockerfile
+  build_command: |
+    echo "🚀 Building Helmex Todo Management App..."
+    pip install -r requirements.txt
+    echo "✅ Build completed"
   run_command: python start_app.py
   environment_slug: python
   instance_count: 1
   instance_size_slug: basic-xxs
+  http_port: 8080
   envs:
   - key: SECRET_KEY
     value: f207c647dae4dd859b20bf29a98b82086f5b3e00c078bcafd35d622781b0200a
@@ -18,9 +25,8 @@ services:
     value: "8080"
   # PostgreSQL database connection
   - key: DATABASE_URL
-    value: ${todo-db.DATABASE_URL}
-  # Mail konfigürasyonu (Gmail SMTP için)
-  # Bu değerleri gerçek mail bilgilerinizle değiştirin
+    value: ${helmex-todo-db.DATABASE_URL}
+  # Mail konfigürasyonu
   - key: MAIL_SERVER
     value: smtp.gmail.com
   - key: MAIL_PORT
@@ -36,10 +42,16 @@ services:
     
 # Yedekleme worker servisi
 - name: backup-worker
+  source_dir: /
   github:
     repo: ozmenkaya/todo
     branch: main
     deploy_on_push: true
+  dockerfile_path: Dockerfile
+  build_command: |
+    echo "🔄 Building Backup Worker..."
+    pip install -r requirements.txt
+    echo "✅ Backup worker build completed"
   run_command: python start_backup_worker.py
   environment_slug: python
   instance_count: 1
@@ -51,7 +63,7 @@ services:
     value: production
   # PostgreSQL database connection for backup
   - key: DATABASE_URL
-    value: ${todo-db.DATABASE_URL}
+    value: ${helmex-todo-db.DATABASE_URL}
   # Mail konfigürasyonu (backup bildirimler için)
   - key: MAIL_SERVER
     value: smtp.gmail.com
@@ -68,7 +80,7 @@ services:
 
 # PostgreSQL database - Kalıcı veri depolama için
 databases:
-- name: todo-db
+- name: helmex-todo-db
   engine: PG
   size: db-s-dev-database  # $7/ay
   num_nodes: 1
