@@ -47,9 +47,13 @@ else:
 app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
 app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', '587'))
 app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'true').lower() in ['true', 'on', '1']
-app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME') or 'info@helmex.com.tr'  # Fallback
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD') or '4866Pars'  # Geçici - app password ile değiştir
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@helmex.com')
+
+# Debug: Mail config'i log'la
+print(f"🔧 Mail config - Username: {app.config['MAIL_USERNAME'][:4]}***")
+print(f"🔧 Mail config - Password: {'SET' if app.config['MAIL_PASSWORD'] else 'NOT SET'}")
 
 # Initialize extensions with app
 db.init_app(app)
