@@ -32,9 +32,9 @@ services:
   - key: MAIL_USERNAME
     value: info@helmex.com.tr
   - key: MAIL_PASSWORD
-    value: YOUR_GMAIL_APP_PASSWORD_HERE
+    value: iauzzcajyoqzxxkd
   - key: MAIL_DEFAULT_SENDER
-    value: noreply@helmex.com.tr
+    value: info@helmex.com.tr
 
 # PostgreSQL database - Kalıcı veri depolama için
 databases:
