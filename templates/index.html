@@ -41,42 +41,6 @@
             </div>
         </div>
 
-        <!-- Görev Özeti -->
-        <div class="row mb-4">
-            <div class="col-md-3">
-                <div class="card bg-warning text-dark">
-                    <div class="card-body text-center">
-                        <h5>{{ tasks|selectattr("status", "equalto", "pending")|list|length }}</h5>
-                        <small>Beklemede</small>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card bg-info text-white">
-                    <div class="card-body text-center">
-                        <h5>{{ tasks|selectattr("status", "equalto", "in_progress")|list|length }}</h5>
-                        <small>Devam Ediyor</small>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card bg-success text-white">
-                    <div class="card-body text-center">
-                        <h5>{{ completed_tasks|length if current_user.role == 'admin' else (assigned_completed_tasks|length + created_completed_tasks|length) if current_user.role != 'employee' else assigned_completed_tasks|length }}</h5>
-                        <small>Tamamlandı</small>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card bg-primary text-white">
-                    <div class="card-body text-center">
-                        <h5 id="todayRemindersCount">0</h5>
-                        <small>Bugünün Anımsatıcıları</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- Bugünün Anımsatıcıları Widget -->
         <div class="card mb-4" id="todayRemindersCard" style="display: none;">
             <div class="card-header bg-primary text-white">
