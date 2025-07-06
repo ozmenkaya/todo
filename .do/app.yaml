@@ -1,4 +1,4 @@
-name: helmex-todo-management
+name: helmex-todo-app
 services:
 - name: web
   source_dir: /
