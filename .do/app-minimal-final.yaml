@@ -1,0 +1,16 @@
+name: helmex-todo
+services:
+- github:
+    repo: ozmenkaya/todo
+    branch: main
+  run_command: python start_app.py
+  environment_slug: python
+  envs:
+  - key: SECRET_KEY
+    value: f207c647dae4dd859b20bf29a98b82086f5b3e00c078bcafd35d622781b0200a
+  - key: DATABASE_URL
+    value: ${db.DATABASE_URL}
+
+databases:
+- name: db
+  engine: PG

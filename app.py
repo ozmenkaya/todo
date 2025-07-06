@@ -199,7 +199,7 @@ def create_task():
         db.session.commit()
         
         # Acil görevler için mail gönder
-        if priority == 'acil':
+        if priority == 'urgent':
             try:
                 send_urgent_task_email(task, assignees)
                 flash(f'🚨 Acil görev oluşturuldu ve {len(assigned_to_list)} kişiye mail gönderildi!')
@@ -652,10 +652,16 @@ def send_urgent_task_email(task, assignees):
             print(f"Görev: {task.title}")
             print(f"Alıcılar: {[assignee.email or assignee.username for assignee in assignees]}")
             return True
-            
+        
+        # Debug: Mail konfigürasyonunu kontrol et
+        print(f"🔧 Mail Server: {app.config.get('MAIL_SERVER')}")
+        print(f"🔧 Mail Username: {app.config.get('MAIL_USERNAME')}")
+        
+        mail_sent_count = 0    
         # Her atanan kullanıcıya ayrı mail gönder
         for assignee in assignees:
             if assignee.email:  # Email adresi varsa
+                print(f"📧 Mail gönderiliyor: {assignee.email}")
                 msg = Message(
                     subject=f'🚨 ACİL GÖREV: {task.title}',
                     recipients=[assignee.email],
@@ -683,6 +689,12 @@ def send_urgent_task_email(task, assignees):
                     '''
                 )
                 mail.send(msg)
+                mail_sent_count += 1
+                print(f"✅ Mail gönderildi: {assignee.email}")
+            else:
+                print(f"❌ Email adresi yok: {assignee.username}")
+        
+        print(f"📊 Toplam {mail_sent_count} mail gönderildi")
         return True
     except Exception as e:
         print(f"Mail gönderme hatası: {e}")
