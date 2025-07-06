@@ -32,7 +32,7 @@ services:
   - key: MAIL_USERNAME
     value: info@helmex.com.tr
   - key: MAIL_PASSWORD
-    value: 4866Pars
+    value: YOUR_GMAIL_APP_PASSWORD_HERE
   - key: MAIL_DEFAULT_SENDER
     value: noreply@helmex.com.tr
 

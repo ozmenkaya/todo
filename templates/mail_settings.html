@@ -35,6 +35,97 @@
                 </div>
             </div>
 
+            <!-- Mail Ayarları Düzenleme Formu -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-edit"></i> Mail Ayarlarını Düzenle</h5>
+                </div>
+                <div class="card-body">
+                    <form id="mailSettingsForm" method="POST" action="/admin/mail-settings">>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="mailServer" class="form-label">Mail Server</label>
+                                    <input type="text" class="form-control" id="mailServer" name="mail_server" 
+                                           value="{{ config.MAIL_SERVER or 'smtp.gmail.com' }}" placeholder="smtp.gmail.com">
+                                    <div class="form-text">SMTP sunucu adresi</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="mailPort" class="form-label">Mail Port</label>
+                                    <input type="number" class="form-control" id="mailPort" name="mail_port" 
+                                           value="{{ config.MAIL_PORT or '587' }}" placeholder="587">
+                                    <div class="form-text">SMTP port numarası (587 önerilen)</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="mailUsername" class="form-label">Mail Kullanıcı Adı</label>
+                                    <input type="email" class="form-control" id="mailUsername" name="mail_username" 
+                                           value="{{ config.MAIL_USERNAME or '' }}" placeholder="info@helmex.com.tr">
+                                    <div class="form-text">SMTP kullanıcı adı (email adresi)</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="mailPassword" class="form-label">Mail Şifresi</label>
+                                    <input type="password" class="form-control" id="mailPassword" name="mail_password" 
+                                           placeholder="Gmail App Password (16 haneli)" 
+                                           {% if config.MAIL_PASSWORD %}value="••••••••••••••••"{% endif %}>
+                                    <div class="form-text">Gmail App Password veya normal şifre</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="mailDefaultSender" class="form-label">Varsayılan Gönderen</label>
+                                    <input type="email" class="form-control" id="mailDefaultSender" name="mail_default_sender" 
+                                           value="{{ config.MAIL_DEFAULT_SENDER or 'noreply@helmex.com' }}" placeholder="noreply@helmex.com">
+                                    <div class="form-text">Mail'lerin gönderen adresi</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="mailUseTLS" name="mail_use_tls" 
+                                               {{ 'checked' if config.MAIL_USE_TLS else '' }}>
+                                        <label class="form-check-label" for="mailUseTLS">
+                                            TLS Kullan (Önerilen)
+                                        </label>
+                                    </div>
+                                    <div class="form-text">Güvenli bağlantı için TLS şifreleme</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="fas fa-save"></i> Ayarları Kaydet
+                                    </button>
+                                    <button type="button" id="loadCurrentSettings" class="btn btn-outline-secondary">
+                                        <i class="fas fa-download"></i> Mevcut Ayarları Yükle
+                                    </button>
+                                    <button type="button" id="resetToDefaults" class="btn btn-outline-warning">
+                                        <i class="fas fa-undo"></i> Varsayılana Sıfırla
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                    
+                    <!-- Kayıt Sonucu -->
+                    <div id="saveResult" class="mt-3" style="display: none;"></div>
+                </div>
+            </div>
+
             <!-- Mail Test Sonuçları -->
             <div class="card mb-4" id="testResultCard" style="display: none;">
                 <div class="card-header">
@@ -93,6 +184,24 @@ document.addEventListener('DOMContentLoaded', function() {
     
     document.getElementById('refreshConfig').addEventListener('click', loadMailConfig);
     document.getElementById('testMail').addEventListener('click', sendTestMail);
+    
+    // Mevcut ayarları yükle
+    document.getElementById('loadCurrentSettings').addEventListener('click', function() {
+        // Formda zaten mevcut ayarlar yüklü, bu buton sadece yeniden yüklemek için
+        location.reload();
+    });
+    
+    // Varsayılan ayarlara sıfırla
+    document.getElementById('resetToDefaults').addEventListener('click', function() {
+        if (confirm('Tüm mail ayarlarını varsayılan değerlere sıfırlamak istediğinizden emin misiniz?')) {
+            document.getElementById('mailServer').value = 'smtp.gmail.com';
+            document.getElementById('mailPort').value = '587';
+            document.getElementById('mailUsername').value = '';
+            document.getElementById('mailPassword').value = '';
+            document.getElementById('mailDefaultSender').value = 'noreply@helmex.com';
+            document.getElementById('mailUseTLS').checked = true;
+        }
+    });
 });
 
 function loadMailConfig() {

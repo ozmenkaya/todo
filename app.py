@@ -8,6 +8,9 @@ import os
 # Models import
 from models import db, User, Task, Comment, Reminder, task_assignments
 
+# Mail konfigürasyonu için kalıcı saklama
+from mail_config import save_mail_config, load_mail_config, apply_mail_config_to_app
+
 # Jinja2 filtre fonksiyonları
 def nl2br(value):
     """Yeni satırları <br> etiketlerine çevirir"""
@@ -55,6 +58,11 @@ app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'norep
 print(f"🔧 Mail config - Username: {app.config['MAIL_USERNAME'][:4]}***")
 print(f"🔧 Mail config - Password: {'SET' if app.config['MAIL_PASSWORD'] else 'NOT SET'}")
 
+# Kaydedilmiş mail ayarlarını yükle
+saved_mail_config = load_mail_config()
+apply_mail_config_to_app(app, saved_mail_config)
+
+# Flask-Mail başlatma
 # Initialize extensions with app
 db.init_app(app)
 mail = Mail(app)
@@ -778,7 +786,7 @@ def download_backup(filename):
     backup_dir = 'backups'
     return send_from_directory(backup_dir, filename, as_attachment=True)
 
-@app.route('/admin/mail-settings')
+@app.route('/admin/mail-settings', methods=['GET', 'POST'])
 @login_required
 def mail_settings():
     """Mail ayarları sayfası"""
@@ -786,7 +794,76 @@ def mail_settings():
         flash('Bu sayfaya erişim yetkiniz yok!')
         return redirect(url_for('index'))
     
-    return render_template('mail_settings.html')
+    if request.method == 'POST':
+        # Form verilerini al
+        mail_server = request.form.get('mail_server', '').strip()
+        mail_port = request.form.get('mail_port', '').strip()
+        mail_use_tls = request.form.get('mail_use_tls') == 'on'
+        mail_username = request.form.get('mail_username', '').strip()
+        mail_password = request.form.get('mail_password', '').strip()
+        # Eğer şifre alanı boş veya sadece yıldız karakterleri ise mevcut şifreyi koru
+        if not mail_password or mail_password.startswith('••••'):
+            mail_password = app.config.get('MAIL_PASSWORD', '')
+            print(f"🔧 Mevcut şifre korunuyor")
+        mail_default_sender = request.form.get('mail_default_sender', '').strip()
+        
+        # Debug: Form verilerini log'la
+        print(f"🔧 Form verileri alındı:")
+        print(f"   Server: {mail_server}")
+        print(f"   Port: {mail_port}")
+        print(f"   TLS: {mail_use_tls}")
+        print(f"   Username: {mail_username}")
+        print(f"   Password: {'SET' if mail_password else 'EMPTY'}")
+        print(f"   Sender: {mail_default_sender}")
+        
+        # Validasyon
+        error_messages = []
+        if not mail_server:
+            error_messages.append('Mail server adresi gerekli')
+        if not mail_port or not mail_port.isdigit():
+            error_messages.append('Geçerli bir port numarası gerekli')
+        if not mail_username:
+            error_messages.append('Kullanıcı adı gerekli')
+        if not mail_default_sender:
+            error_messages.append('Gönderen adresi gerekli')
+        
+        if error_messages:
+            for error_msg in error_messages:
+                flash(error_msg, 'danger')
+            return render_template('mail_settings.html', config=app.config)
+        
+        try:
+            # Flask app config'i güncelle
+            app.config['MAIL_SERVER'] = mail_server
+            app.config['MAIL_PORT'] = int(mail_port)
+            app.config['MAIL_USE_TLS'] = mail_use_tls
+            app.config['MAIL_USERNAME'] = mail_username
+            app.config['MAIL_PASSWORD'] = mail_password
+            app.config['MAIL_DEFAULT_SENDER'] = mail_default_sender
+            
+            # Mail ayarlarını dosyaya kaydet
+            config_to_save = {
+                'MAIL_SERVER': mail_server,
+                'MAIL_PORT': int(mail_port),
+                'MAIL_USE_TLS': mail_use_tls,
+                'MAIL_USERNAME': mail_username,
+                'MAIL_PASSWORD': mail_password,
+                'MAIL_DEFAULT_SENDER': mail_default_sender
+            }
+            save_mail_config(config_to_save)
+            
+            # Mail extension'ı yeniden başlat
+            global mail
+            mail.init_app(app)
+            
+            flash('✅ Mail ayarları başarıyla güncellendi!', 'success')
+            print(f"🔧 Mail ayarları güncellendi - Server: {mail_server}, Username: {mail_username[:4]}***")
+            
+        except Exception as e:
+            flash(f'❌ Mail ayarları güncellenirken hata oluştu: {str(e)}', 'danger')
+            print(f"❌ Mail ayarları güncelleme hatası: {e}")
+    
+    return render_template('mail_settings.html', config=app.config)
 
 @app.route('/debug/mail')
 @login_required
