@@ -116,12 +116,25 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
+        
+        print(f"🔍 Login attempt - Username: {username}")
+        
         user = User.query.filter_by(username=username).first()
         
-        if user and check_password_hash(user.password_hash, password):
-            login_user(user)
-            return redirect(url_for('index'))
+        if user:
+            print(f"✅ User found: {user.username} | Role: {user.role}")
+            print(f"🔐 Password check...")
+            
+            if check_password_hash(user.password_hash, password):
+                print(f"✅ Password correct for user: {username}")
+                login_user(user)
+                print(f"✅ User logged in successfully: {username}")
+                return redirect(url_for('index'))
+            else:
+                print(f"❌ Password incorrect for user: {username}")
+                flash('Geçersiz kullanıcı adı veya şifre!')
         else:
+            print(f"❌ User not found: {username}")
             flash('Geçersiz kullanıcı adı veya şifre!')
     
     return render_template('login.html')
