@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+
+{% block title %}Mail Ayarları - Helmex{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-envelope-open"></i> Mail Sistem Ayarları</h2>
+                <div>
+                    <button id="refreshConfig" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-sync-alt"></i> Yenile
+                    </button>
+                    <button id="testMail" class="btn btn-primary">
+                        <i class="fas fa-paper-plane"></i> Test Mail Gönder
+                    </button>
+                </div>
+            </div>
+
+            <!-- Mail Konfigürasyonu Card -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-cog"></i> Aktif Mail Konfigürasyonu</h5>
+                </div>
+                <div class="card-body">
+                    <div id="mailConfig">
+                        <div class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Yükleniyor...</span>
+                            </div>
+                            <p class="mt-2">Mail konfigürasyonu yükleniyor...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mail Test Sonuçları -->
+            <div class="card mb-4" id="testResultCard" style="display: none;">
+                <div class="card-header">
+                    <h5><i class="fas fa-flask"></i> Test Sonuçları</h5>
+                </div>
+                <div class="card-body" id="testResults">
+                </div>
+            </div>
+
+            <!-- Mail Ayarları Açıklaması -->
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-info-circle"></i> Mail Ayarları Hakkında</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-check-circle text-success"></i> Doğru Konfigürasyon:</h6>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item"><strong>MAIL_SERVER:</strong> smtp.gmail.com</li>
+                                <li class="list-group-item"><strong>MAIL_PORT:</strong> 587</li>
+                                <li class="list-group-item"><strong>MAIL_USE_TLS:</strong> true</li>
+                                <li class="list-group-item"><strong>MAIL_USERNAME:</strong> info@helmex.com.tr</li>
+                                <li class="list-group-item"><strong>MAIL_PASSWORD:</strong> Gmail App Password (16 haneli)</li>
+                                <li class="list-group-item"><strong>MAIL_DEFAULT_SENDER:</strong> noreply@helmex.com</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-exclamation-triangle text-warning"></i> Önemli Notlar:</h6>
+                            <div class="alert alert-info">
+                                <p><strong>Gmail App Password:</strong></p>
+                                <ol class="mb-0">
+                                    <li>Google Account → Security</li>
+                                    <li>2-Step Verification aktif olmalı</li>
+                                    <li>App passwords → "Helmex Todo"</li>
+                                    <li>16 haneli kodu kopyala</li>
+                                </ol>
+                            </div>
+                            <div class="alert alert-warning">
+                                <p class="mb-0"><strong>DigitalOcean:</strong> Environment Variables'da MAIL_USERNAME ve MAIL_PASSWORD ayarlanmalı.</p>
+                            </div>
+                            <div class="alert alert-success">
+                                <p class="mb-0"><strong>Test:</strong> Acil görev oluştururken mail otomatik gönderilir.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadMailConfig();
+    
+    document.getElementById('refreshConfig').addEventListener('click', loadMailConfig);
+    document.getElementById('testMail').addEventListener('click', sendTestMail);
+});
+
+function loadMailConfig() {
+    const configDiv = document.getElementById('mailConfig');
+    configDiv.innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Yükleniyor...</span>
+            </div>
+            <p class="mt-2">Mail konfigürasyonu yükleniyor...</p>
+        </div>
+    `;
+    
+    fetch('/debug/mail')
+        .then(response => response.json())
+        .then(data => {
+            displayMailConfig(data);
+        })
+        .catch(error => {
+            configDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle"></i>
+                    Hata: ${error.message}
+                </div>
+            `;
+        });
+}
+
+function displayMailConfig(config) {
+    const configDiv = document.getElementById('mailConfig');
+    
+    let html = '<div class="row">';
+    
+    for (const [key, value] of Object.entries(config)) {
+        let statusClass = 'success';
+        let statusIcon = 'check-circle';
+        let displayValue = value;
+        
+        // Değer kontrolü
+        if (key === 'MAIL_USERNAME' || key === 'MAIL_PASSWORD') {
+            if (!value || value === null) {
+                statusClass = 'danger';
+                statusIcon = 'times-circle';
+                displayValue = '❌ Ayarlanmamış';
+            } else if (key === 'MAIL_PASSWORD') {
+                displayValue = '✅ Ayarlanmış';
+            }
+        }
+        
+        if (key === 'MAIL_PORT' && value !== 587) {
+            statusClass = 'warning';
+            statusIcon = 'exclamation-triangle';
+        }
+        
+        if (key === 'MAIL_SERVER' && value !== 'smtp.gmail.com') {
+            statusClass = 'warning';
+            statusIcon = 'exclamation-triangle';
+        }
+        
+        html += `
+            <div class="col-md-6 mb-3">
+                <div class="card border-${statusClass}">
+                    <div class="card-body">
+                        <h6 class="card-title">
+                            <i class="fas fa-${statusIcon} text-${statusClass}"></i>
+                            ${key}
+                        </h6>
+                        <p class="card-text">
+                            <code>${displayValue}</code>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    html += '</div>';
+    configDiv.innerHTML = html;
+}
+
+function sendTestMail() {
+    const testBtn = document.getElementById('testMail');
+    const originalText = testBtn.innerHTML;
+    
+    testBtn.disabled = true;
+    testBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gönderiliyor...';
+    
+    fetch('/debug/test-mail')
+        .then(response => response.json())
+        .then(data => {
+            displayTestResult(data);
+        })
+        .catch(error => {
+            displayTestResult({
+                status: 'error',
+                message: `Hata: ${error.message}`
+            });
+        })
+        .finally(() => {
+            testBtn.disabled = false;
+            testBtn.innerHTML = originalText;
+        });
+}
+
+function displayTestResult(result) {
+    const resultCard = document.getElementById('testResultCard');
+    const resultDiv = document.getElementById('testResults');
+    
+    const isSuccess = result.status === 'success';
+    const alertClass = isSuccess ? 'alert-success' : 'alert-danger';
+    const icon = isSuccess ? 'check-circle' : 'exclamation-circle';
+    
+    resultDiv.innerHTML = `
+        <div class="alert ${alertClass}">
+            <i class="fas fa-${icon}"></i>
+            <strong>${isSuccess ? 'Başarılı!' : 'Hata!'}</strong>
+            ${result.message}
+        </div>
+    `;
+    
+    resultCard.style.display = 'block';
+    
+    // 5 saniye sonra otomatik gizle
+    if (isSuccess) {
+        setTimeout(() => {
+            resultCard.style.display = 'none';
+        }, 5000);
+    }
+}
+</script>
+{% endblock %}

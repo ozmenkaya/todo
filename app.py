@@ -778,13 +778,22 @@ def download_backup(filename):
     backup_dir = 'backups'
     return send_from_directory(backup_dir, filename, as_attachment=True)
 
+@app.route('/admin/mail-settings')
+@login_required
+def mail_settings():
+    """Mail ayarları sayfası"""
+    if current_user.role != 'admin':
+        flash('Bu sayfaya erişim yetkiniz yok!')
+        return redirect(url_for('index'))
+    
+    return render_template('mail_settings.html')
+
 @app.route('/debug/mail')
 @login_required
 def debug_mail():
     """Mail konfigürasyonunu debug etmek için"""
-    if not current_user.role == 'admin':
-        flash('Bu sayfaya erişim yetkiniz yok.')
-        return redirect(url_for('index'))
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Bu sayfaya erişim yetkiniz yok.'}), 403
     
     debug_info = {
         'MAIL_SERVER': app.config.get('MAIL_SERVER'),
@@ -802,9 +811,8 @@ def debug_mail():
 @login_required
 def test_mail():
     """Test mail gönderim"""
-    if not current_user.role == 'admin':
-        flash('Bu sayfaya erişim yetkiniz yok.')
-        return redirect(url_for('index'))
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Bu sayfaya erişim yetkiniz yok.'}), 403
     
     try:
         if not app.config.get('MAIL_USERNAME'):
