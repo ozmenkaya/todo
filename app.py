@@ -347,6 +347,9 @@ def task_detail(task_id):
         flash('Bu görevi görme yetkiniz yok!')
         return redirect(url_for('index'))
     
+    # Görevi okundu olarak işaretle
+    task.mark_as_read(current_user)
+    
     comments = Comment.query.filter_by(task_id=task_id).order_by(Comment.created_at.desc()).all()
     return render_template('task_detail.html', task=task, comments=comments)
 
@@ -1237,6 +1240,9 @@ def report_detail(report_id):
     if not can_view:
         flash('Bu raporu görüntüleme yetkiniz yok!', 'error')
         return redirect(url_for('reports'))
+    
+    # Raporu okundu olarak işaretle
+    report.mark_as_read(current_user)
     
     # Yorumları getir
     comments = ReportComment.query.filter_by(report_id=report_id).order_by(ReportComment.created_at.desc()).all()

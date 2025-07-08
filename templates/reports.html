@@ -64,6 +64,12 @@
                                                 <td>
                                                     <a href="{{ url_for('report_detail', report_id=report.id) }}" class="text-decoration-none">
                                                         <strong>{{ report.title }}</strong>
+                                                        <!-- Okunma durumu göstergesi -->
+                                                        {% if report.is_read_by(current_user) %}
+                                                            <i class="fas fa-eye text-success ms-1" title="Okundu"></i>
+                                                        {% else %}
+                                                            <i class="fas fa-eye-slash text-warning ms-1" title="Okunmadı"></i>
+                                                        {% endif %}
                                                     </a>
                                                 </td>
                                                 <td>
@@ -138,6 +144,12 @@
                                                 <td>
                                                     <a href="{{ url_for('report_detail', report_id=report.id) }}" class="text-decoration-none">
                                                         <strong>{{ report.title }}</strong>
+                                                        <!-- Okunma durumu göstergesi -->
+                                                        {% if report.is_read_by(current_user) %}
+                                                            <i class="fas fa-eye text-success ms-1" title="Okundu"></i>
+                                                        {% else %}
+                                                            <i class="fas fa-eye-slash text-warning ms-1" title="Okunmadı"></i>
+                                                        {% endif %}
                                                     </a>
                                                 </td>
                                                 <td>

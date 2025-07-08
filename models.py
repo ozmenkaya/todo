@@ -17,6 +17,22 @@ report_shares = db.Table('report_shares',
     db.Column('shared_at', db.DateTime, default=datetime.utcnow)
 )
 
+# Görev okunma durumu takip tablosu
+task_reads = db.Table('task_reads',
+    db.Column('task_id', db.Integer, db.ForeignKey('task.id'), primary_key=True),
+    db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
+    db.Column('read_at', db.DateTime, default=datetime.utcnow),
+    db.Column('last_read_at', db.DateTime, default=datetime.utcnow)
+)
+
+# Rapor okunma durumu takip tablosu
+report_reads = db.Table('report_reads',
+    db.Column('report_id', db.Integer, db.ForeignKey('report.id'), primary_key=True),
+    db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
+    db.Column('read_at', db.DateTime, default=datetime.utcnow),
+    db.Column('last_read_at', db.DateTime, default=datetime.utcnow)
+)
+
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -47,6 +63,40 @@ class Task(db.Model):
     # İlişkiler
     assignees = db.relationship('User', secondary=task_assignments, back_populates='assigned_tasks')
     creator = db.relationship('User', foreign_keys=[created_by], overlaps="created_tasks")
+    readers = db.relationship('User', secondary=task_reads, backref='read_tasks')
+    
+    def is_read_by(self, user):
+        """Belirli bir kullanıcı tarafından okundu mu kontrol et"""
+        return db.session.query(task_reads).filter_by(task_id=self.id, user_id=user.id).first() is not None
+    
+    def mark_as_read(self, user):
+        """Görevi okundu olarak işaretle"""
+        existing_read = db.session.query(task_reads).filter_by(task_id=self.id, user_id=user.id).first()
+        if existing_read:
+            # Mevcut okunma kaydını güncelle
+            db.session.execute(
+                task_reads.update()
+                .where(task_reads.c.task_id == self.id)
+                .where(task_reads.c.user_id == user.id)
+                .values(last_read_at=datetime.utcnow())
+            )
+        else:
+            # Yeni okunma kaydı ekle
+            db.session.execute(
+                task_reads.insert().values(task_id=self.id, user_id=user.id)
+            )
+        db.session.commit()
+    
+    def get_read_info(self, user):
+        """Kullanıcı için okunma bilgilerini getir"""
+        read_info = db.session.query(task_reads).filter_by(task_id=self.id, user_id=user.id).first()
+        if read_info:
+            return {
+                'is_read': True,
+                'read_at': read_info.read_at,
+                'last_read_at': read_info.last_read_at
+            }
+        return {'is_read': False}
 
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -90,6 +140,40 @@ class Report(db.Model):
     # İlişkiler
     author = db.relationship('User', backref='authored_reports')
     shared_with = db.relationship('User', secondary=report_shares, backref='shared_reports')
+    readers = db.relationship('User', secondary=report_reads, backref='read_reports')
+    
+    def is_read_by(self, user):
+        """Belirli bir kullanıcı tarafından okundu mu kontrol et"""
+        return db.session.query(report_reads).filter_by(report_id=self.id, user_id=user.id).first() is not None
+    
+    def mark_as_read(self, user):
+        """Raporu okundu olarak işaretle"""
+        existing_read = db.session.query(report_reads).filter_by(report_id=self.id, user_id=user.id).first()
+        if existing_read:
+            # Mevcut okunma kaydını güncelle
+            db.session.execute(
+                report_reads.update()
+                .where(report_reads.c.report_id == self.id)
+                .where(report_reads.c.user_id == user.id)
+                .values(last_read_at=datetime.utcnow())
+            )
+        else:
+            # Yeni okunma kaydı ekle
+            db.session.execute(
+                report_reads.insert().values(report_id=self.id, user_id=user.id)
+            )
+        db.session.commit()
+    
+    def get_read_info(self, user):
+        """Kullanıcı için okunma bilgilerini getir"""
+        read_info = db.session.query(report_reads).filter_by(report_id=self.id, user_id=user.id).first()
+        if read_info:
+            return {
+                'is_read': True,
+                'read_at': read_info.read_at,
+                'last_read_at': read_info.last_read_at
+            }
+        return {'is_read': False}
 
 class ReportComment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
