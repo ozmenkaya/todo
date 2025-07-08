@@ -1430,6 +1430,79 @@ def delete_report(report_id):
     return redirect(url_for('reports'))
 
 # =============================================================================
+# Navbar bildirimleri için API endpoint'leri
+@app.route('/api/tasks_notifications')
+@login_required
+def api_tasks_notifications():
+    """Görevler için bildirim sayısını döndürür"""
+    today = datetime.now().date()
+    
+    # Gecikmiş görevler
+    overdue_tasks = Task.query.filter(
+        Task.assigned_to == current_user.id,
+        Task.due_date < today,
+        Task.status != 'completed'
+    ).count()
+    
+    # Bugün için acil görevler
+    today_urgent_tasks = Task.query.filter(
+        Task.assigned_to == current_user.id,
+        Task.due_date == today,
+        Task.priority == 'urgent',
+        Task.status != 'completed'
+    ).count()
+    
+    # Yeni atanmış görevler (son 24 saat)
+    yesterday = datetime.now() - timedelta(days=1)
+    new_tasks = Task.query.filter(
+        Task.assigned_to == current_user.id,
+        Task.created_at >= yesterday,
+        Task.status == 'pending'
+    ).count()
+    
+    total_notifications = overdue_tasks + today_urgent_tasks + new_tasks
+    
+    return jsonify({
+        'count': total_notifications,
+        'overdue': overdue_tasks,
+        'urgent_today': today_urgent_tasks,
+        'new_tasks': new_tasks
+    })
+
+@app.route('/api/reports_notifications')
+@login_required
+def api_reports_notifications():
+    """Raporlar için bildirim sayısını döndürür"""
+    # Kullanıcının paylaşılan raporları
+    shared_reports = db.session.query(Report).join(
+        report_shares, Report.id == report_shares.c.report_id
+    ).filter(
+        report_shares.c.user_id == current_user.id,
+        Report.author_id != current_user.id
+    ).count()
+    
+    # Yeni yorumlar (son 24 saat)
+    yesterday = datetime.now() - timedelta(days=1)
+    user_reports = Report.query.filter_by(author_id=current_user.id).all()
+    new_comments = 0
+    
+    for report in user_reports:
+        comment_count = ReportComment.query.filter(
+            ReportComment.report_id == report.id,
+            ReportComment.author_id != current_user.id,
+            ReportComment.created_at >= yesterday
+        ).count()
+        new_comments += comment_count
+    
+    total_notifications = shared_reports + new_comments
+    
+    return jsonify({
+        'count': total_notifications,
+        'shared_reports': shared_reports,
+        'new_comments': new_comments
+    })
+
+# =============================================================================
 if __name__ == '__main__':
     import os
     import time
