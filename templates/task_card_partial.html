@@ -38,14 +38,14 @@
                 <div class="col-6">
                     <small class="text-muted">
                         <i class="fas fa-calendar"></i> 
-                        {{ task.created_at.strftime('%d.%m.%Y') }}
+                        {{ task.created_at|format_date }}
                     </small>
                 </div>
                 <div class="col-6 text-end">
                     {% if task.updated_at > task.created_at %}
                         <small class="text-muted">
                             <i class="fas fa-edit"></i> 
-                            {{ task.updated_at.strftime('%d.%m.%Y') }}
+                            {{ task.updated_at|format_date }}
                         </small>
                     {% endif %}
                 </div>
@@ -55,7 +55,7 @@
                 <div class="mt-2">
                     <small class="{% if task.due_date < moment.utcnow() and task.status != 'completed' %}due-date-warning{% else %}text-muted{% endif %}">
                         <i class="fas fa-clock"></i> 
-                        Bitiş: {{ task.due_date.strftime('%d.%m.%Y') }}
+                        Bitiş: {{ task.due_date|format_date }}
                         {% if task.due_date < moment.utcnow() and task.status != 'completed' %}
                             <span class="badge bg-danger">Gecikmiş</span>
                         {% endif %}

@@ -42,7 +42,7 @@
                         <strong>Oluşturan:</strong> {{ task.creator.username }}
                     </div>
                     <div class="col-md-6">
-                        <strong>Oluşturma Tarihi:</strong> {{ (task.created_at|istanbul_time).strftime('%d.%m.%Y %H:%M') }}
+                        <strong>Oluşturma Tarihi:</strong> {{ task.created_at|format_datetime }}
                     </div>
                 </div>
                 
@@ -51,12 +51,12 @@
                     <div class="col-md-6">
                         <strong>Bitiş Tarihi:</strong> 
                         <span class="{% if task.due_date < moment.utcnow() and task.status != 'completed' %}text-danger fw-bold{% endif %}">
-                            {{ (task.due_date|istanbul_time).strftime('%d.%m.%Y') if task.due_date else '-' }}
+                            {{ task.due_date|format_date if task.due_date else '-' }}
                         </span>
                     </div>
                     {% if task.completed_at %}
                     <div class="col-md-6">
-                        <strong>Tamamlanma Tarihi:</strong> {{ (task.completed_at|istanbul_time).strftime('%d.%m.%Y %H:%M') if task.completed_at else '-' }}
+                        <strong>Tamamlanma Tarihi:</strong> {{ task.completed_at|format_datetime if task.completed_at else '-' }}
                     </div>
                     {% endif %}
                 </div>
@@ -128,7 +128,7 @@
                 <div class="border rounded p-3 mb-3">
                     <div class="d-flex justify-content-between">
                         <strong>{{ comment.user.username }}</strong>
-                        <small class="text-muted">{{ (comment.created_at|istanbul_time).strftime('%d.%m.%Y %H:%M') }}</small>
+                        <small class="text-muted">{{ comment.created_at|format_datetime }}</small>
                     </div>
                     <div class="mt-2">
                         {{ comment.content|nl2br }}
@@ -175,7 +175,7 @@
                 
                 <div class="mb-2">
                     <small class="text-muted">Son Güncelleme:</small><br>
-                    <strong>{{ (task.updated_at|istanbul_time).strftime('%d.%m.%Y %H:%M') if task.updated_at else '-' }}</strong>
+                    <strong>{{ task.updated_at|format_datetime if task.updated_at else '-' }}</strong>
                 </div>
                 
                 {% if task.due_date %}

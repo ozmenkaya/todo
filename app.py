@@ -108,10 +108,39 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
+# Timezone-aware date formatting functions
+def format_date_time(dt):
+    """DateTime'ı timezone'a göre full format'ta döndürür"""
+    if dt is None:
+        return '-'
+    config = load_timezone_config()
+    converted_dt = utc_to_istanbul(dt)
+    return converted_dt.strftime(config['display_format'])
+
+def format_date_only(dt):
+    """DateTime'ı timezone'a göre sadece tarih format'ta döndürür"""
+    if dt is None:
+        return '-'
+    config = load_timezone_config()
+    converted_dt = utc_to_istanbul(dt)
+    return converted_dt.strftime(config['date_format'])
+
+def format_time_only(dt):
+    """DateTime'ı timezone'a göre sadece saat format'ta döndürür"""
+    if dt is None:
+        return '-'
+    config = load_timezone_config()
+    converted_dt = utc_to_istanbul(dt)
+    return converted_dt.strftime(config['time_format'])
+
 # Jinja2 filtrelerini kaydet
 app.jinja_env.filters['nl2br'] = nl2br
 app.jinja_env.filters['istanbul_time'] = utc_to_istanbul
+app.jinja_env.filters['format_datetime'] = format_date_time
+app.jinja_env.filters['format_date'] = format_date_only
+app.jinja_env.filters['format_time'] = format_time_only
 app.jinja_env.globals['get_istanbul_time'] = get_istanbul_time
+app.jinja_env.globals['get_timezone_config'] = load_timezone_config
 app.jinja_env.globals['moment'] = type('obj', (object,), {
     'utcnow': moment_utcnow,
     'istanbul_now': get_istanbul_time
@@ -699,7 +728,7 @@ def api_today_reminders():
             'id': reminder.id,
             'title': reminder.title,
             'description': reminder.description,
-            'time': reminder.reminder_date.strftime('%H:%M')
+            'time': format_time_only(reminder.reminder_date)
         })
     
     return jsonify(reminder_list)
@@ -792,8 +821,8 @@ def send_urgent_task_email(task, assignees):
                             </div>
                             <p><strong>Öncelik:</strong> <span style="color: #dc3545; font-weight: bold;">ACİL</span></p>
                             <p><strong>Atayan:</strong> {task.creator.username}</p>
-                            {f'<p><strong>Son Tarih:</strong> {task.due_date.strftime("%d.%m.%Y")}</p>' if task.due_date else ''}
-                            <p><strong>Oluşturulma Tarihi:</strong> {task.created_at.strftime("%d.%m.%Y %H:%M")}</p>
+                            {f'<p><strong>Son Tarih:</strong> {format_date_only(task.due_date)}</p>' if task.due_date else ''}
+                            <p><strong>Oluşturulma Tarihi:</strong> {format_date_time(task.created_at)}</p>
                         </div>
                         <div style="background-color: #e9ecef; padding: 15px; text-align: center;">
                             <p style="margin: 0; color: #6c757d;">Bu görev acil olarak işaretlenmiştir. Lütfen en kısa sürede inceleyiniz.</p>
@@ -1054,7 +1083,7 @@ def test_mail():
             html='''
             <h2>Test Mail</h2>
             <p>Bu bir test mailidir. Mail sistemi çalışıyor! ✅</p>
-            <p>Gönderim zamanı: ''' + datetime.now().strftime('%d.%m.%Y %H:%M') + '''</p>
+            <p>Gönderim zamanı: ''' + format_date_time(datetime.now()) + '''</p>
             '''
         )
         mail.send(msg)

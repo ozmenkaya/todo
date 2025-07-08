@@ -171,7 +171,7 @@
                                                 <td>
                                                     {% if task.due_date %}
                                                         <small class="{% if task.due_date < moment.utcnow() and task.status != 'completed' %}text-danger{% else %}text-muted{% endif %}">
-                                                            {{ task.due_date.strftime('%d.%m.%Y') }}
+                                                            {{ task.due_date|format_date }}
                                                         </small>
                                                     {% else %}
                                                         <small class="text-muted">-</small>
@@ -255,7 +255,7 @@
                                                 <td>
                                                     {% if task.completed_at %}
                                                         <small class="text-success">
-                                                            {{ task.completed_at.strftime('%d.%m.%Y %H:%M') }}
+                                                            {{ task.completed_at|format_datetime }}
                                                         </small>
                                                     {% else %}
                                                         <small class="text-muted">-</small>
@@ -355,7 +355,7 @@
                                                 <td>
                                                     {% if task.due_date %}
                                                         <small class="{% if task.due_date < moment.utcnow() and task.status != 'completed' %}text-danger{% else %}text-muted{% endif %}">
-                                                            {{ task.due_date.strftime('%d.%m.%Y') }}
+                                                            {{ task.due_date|format_date }}
                                                         </small>
                                                     {% else %}
                                                         <small class="text-muted">-</small>
@@ -478,7 +478,7 @@
                                                 <td>
                                                     {% if task.due_date %}
                                                         <small class="{% if task.due_date < moment.utcnow() and task.status != 'completed' %}text-danger{% else %}text-muted{% endif %}">
-                                                            {{ task.due_date.strftime('%d.%m.%Y') }}
+                                                            {{ task.due_date|format_date }}
                                                         </small>
                                                     {% else %}
                                                         <small class="text-muted">-</small>
@@ -577,7 +577,7 @@
                                                 <td>
                                                     {% if task.due_date %}
                                                         <small class="{% if task.due_date < moment.utcnow() and task.status != 'completed' %}text-danger{% else %}text-muted{% endif %}">
-                                                            {{ task.due_date.strftime('%d.%m.%Y') }}
+                                                            {{ task.due_date|format_date }}
                                                         </small>
                                                     {% else %}
                                                         <small class="text-muted">-</small>
@@ -665,7 +665,7 @@
                                                 <td>
                                                     {% if task.completed_at %}
                                                         <small class="text-success">
-                                                            {{ task.completed_at.strftime('%d.%m.%Y %H:%M') }}
+                                                            {{ task.completed_at|format_datetime }}
                                                         </small>
                                                     {% else %}
                                                         <small class="text-muted">-</small>

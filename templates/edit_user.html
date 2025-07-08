@@ -120,7 +120,7 @@
                     <div class="col-md-6">
                         <small class="text-muted">
                             <strong>Hesap Oluşturma:</strong><br>
-                            {{ user.created_at.strftime('%d.%m.%Y %H:%M') }}
+                            {{ user.created_at|format_datetime }}
                         </small>
                     </div>
                     <div class="col-md-6">

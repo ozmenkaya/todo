@@ -97,8 +97,8 @@
                                 </td>
                                 <td>
                                     <span class="text-muted">
-                                        {{ backup.date.strftime("%d.%m.%Y") }}<br>
-                                        <small>{{ backup.date.strftime("%H:%M:%S") }}</small>
+                                        {{ backup.date|format_date }}<br>
+                                        <small>{{ backup.date|format_time }}</small>
                                     </span>
                                 </td>
                                 <td>

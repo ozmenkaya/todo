@@ -138,13 +138,13 @@
                                 <div class="col-6">
                                     <small class="{% if is_overdue %}text-danger fw-bold{% elif is_today %}text-success fw-bold{% else %}text-muted{% endif %}">
                                         <i class="fas fa-calendar"></i> 
-                                        {{ reminder.reminder_date.strftime('%d.%m.%Y') }}
+                                        {{ reminder.reminder_date|format_date }}
                                     </small>
                                 </div>
                                 <div class="col-6 text-end">
                                     <small class="{% if is_overdue %}text-danger fw-bold{% elif is_today %}text-success fw-bold{% else %}text-muted{% endif %}">
                                         <i class="fas fa-clock"></i> 
-                                        {{ reminder.reminder_date.strftime('%H:%M') }}
+                                        {{ reminder.reminder_date|format_time }}
                                     </small>
                                 </div>
                             </div>
