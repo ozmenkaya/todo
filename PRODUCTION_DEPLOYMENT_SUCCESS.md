@@ -3,17 +3,26 @@
 ## ✅ Deployment Durumu: AKTIF
 
 **Tarih:** 9 Temmuz 2025  
-**Versiyon:** v2.1 - Modern Navbar Icons & Notifications  
-**Port:** 5005  
+**Versiyon:** v2.2 - Read Status Tracking System  
+**Port:** 5006  
 **Mode:** Production  
 
 ## 🌐 Erişim Bilgileri
 
-- **URL:** http://localhost:5005
+- **URL:** http://localhost:5006
 - **Admin Kullanıcı:** admin
 - **Admin Şifre:** admin123
 
 ## 🎯 Yeni Özellikler (Bu Release)
+
+### 👁️ Okunma Durumu Takip Sistemi
+- ✅ Görevlerin okunma durumu takibi
+- ✅ Raporların okunma durumu takibi
+- ✅ Görsel okunma durumu göstergeleri
+- ✅ Yeşil göz ikonu: Okundu
+- ✅ Sarı göz-kapalı ikonu: Okunmadı
+- ✅ Görev/rapor görüntülendiğinde otomatik "okundu" işaretleme
+- ✅ Kullanıcı bazlı okunma durumu takibi
 
 ### 🔥 Modern Navbar İkonları
 - ✅ Görevler ikonu (📋) - Acil ve gecikmiş görevler için bildirim
@@ -33,6 +42,10 @@
 - ✅ Toggle fonksiyonları
 
 ### 🔧 Teknik İyileştirmeler
+- ✅ task_reads ve report_reads veritabanı tabloları
+- ✅ Okunma durumu yönetimi için model metodları
+- ✅ Otomatik okunma durumu güncellemesi
+- ✅ Kullanıcı bazlı okunma durumu sorgulaması
 - ✅ Navbar bildirimleri için API endpoint'leri
 - ✅ Gerçek zamanlı bildirim sistemi
 - ✅ Modern CSS animasyonları
@@ -54,26 +67,25 @@
 🟢 Backup System: Hazır
 🟢 Notification System: Aktif
 🟢 Navbar Icons: Aktif
+🟢 Read Status Tracking: Aktif
 ```
 
-## 🆕 Yeni API Endpoint'leri
+## 🆕 Yeni Veritabanı Tabloları
 
-- **GET /api/tasks_notifications** - Görevler bildirim sayısı
-- **GET /api/reports_notifications** - Raporlar bildirim sayısı
-- **GET /api/today_reminders** - Bugünün hatırlatmaları
-- **GET /api/current-time** - Güncel sistem saati
+- **task_reads** - Görev okunma durumu takibi
+- **report_reads** - Rapor okunma durumu takibi
 
 ## 🛠️ Production Server
 
 **Mevcut:** Flask Development Server (Production Mode)
 ```bash
-FLASK_ENV=production PORT=5005 python start_app.py
+FLASK_ENV=production PORT=5006 python start_app.py
 ```
 
 **Önerilen:** Gunicorn Production Server
 ```bash
 source .venv/bin/activate
-gunicorn --bind 0.0.0.0:5005 --workers 2 --timeout 120 app:app
+gunicorn --bind 0.0.0.0:5006 --workers 2 --timeout 120 app:app
 ```
 
 ## 📋 Manuel Başlatma
@@ -113,15 +125,26 @@ pip install -r requirements-production.txt
 ## 🚦 Health Check
 
 ```bash
-curl -f http://localhost:5005/ || echo "Server down"
+curl -f http://localhost:5006/ || echo "Server down"
 ```
 
 ## 📝 Kullanıcı Rehberi
 
-### 👤 Kullanıcı Rolleri
-- **Admin:** Tüm yetkilere sahip
-- **Manager:** Departman yönetimi
-- **User:** Temel görev yönetimi
+### 👁️ Okunma Durumu Sistemi
+1. **Görevler:**
+   - Her görev kartında okunma durumu ikonu
+   - Görev detayı görüntülendiğinde otomatik "okundu" işaretleme
+   - Kullanıcı bazlı okunma durumu takibi
+
+2. **Raporlar:**
+   - Rapor listesinde okunma durumu göstergesi
+   - Rapor detayı görüntülendiğinde otomatik "okundu" işaretleme
+   - Paylaşılan raporlar için okunma durumu takibi
+
+3. **Görsel Göstergeler:**
+   - 🟢 Yeşil göz ikonu: Okundu
+   - 🟡 Sarı göz-kapalı ikonu: Okunmadı
+   - Tooltip ile açıklama
 
 ### 📊 Navbar İkonları
 1. **Görevler İkonu (📋):** 
@@ -162,9 +185,12 @@ Otomatik backup sistemi aktif:
 
 ## 🎉 DEPLOYMENT BAŞARILI!
 
-**Uygulama production modda çalışıyor:** http://localhost:5005
+**Uygulama production modda çalışıyor:** http://localhost:5006
 
 ### 🔥 Yeni Özellikler:
+- 👁️ Görev ve rapor okunma durumu takibi
+- 🎯 Görsel okunma durumu göstergeleri
+- 📊 Otomatik okunma durumu güncellemesi
 - 🎯 Modern navbar ikonları ile görsel bildirimler
 - 🔔 Gerçek zamanlı bildirim sistemi
 - 📋 Akıllı görev bildirimleri
@@ -179,4 +205,4 @@ Otomatik backup sistemi aktif:
 5. 📱 Mobile responsive geliştirmeler
 
 **Deployment Tarihi:** 9 Temmuz 2025  
-**Status:** ✅ BAŞARILI - v2.1 Modern Navbar
+**Status:** ✅ BAŞARILI - v2.2 Read Status Tracking
