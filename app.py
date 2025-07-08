@@ -223,42 +223,61 @@ def create_task():
         
         due_date = None
         if due_date_str:
-            # Kullanıcıdan gelen tarih İstanbul saati olarak kabul edilir
-            istanbul_dt = datetime.strptime(due_date_str, '%Y-%m-%d')
-            # İstanbul saatini UTC'ye çevir
-            due_date = istanbul_to_utc(istanbul_dt)
+            try:
+                # Kullanıcıdan gelen tarih İstanbul saati olarak kabul edilir
+                istanbul_dt = datetime.strptime(due_date_str, '%Y-%m-%d')
+                print(f"🕐 Due date input: {due_date_str} -> {istanbul_dt}")
+                
+                # İstanbul saatini UTC'ye çevir
+                due_date = istanbul_to_utc(istanbul_dt)
+                print(f"🕐 Due date UTC: {due_date}")
+                
+            except Exception as e:
+                print(f"❌ Date conversion error: {e}")
+                flash(f'Tarih formatı hatası: {str(e)}')
+                return redirect(url_for('create_task'))
         
         # Yeni görev oluştur
-        task = Task(
-            title=title,
-            description=description,
-            created_by=current_user.id,
-            priority=priority,
-            due_date=due_date
-        )
-        
-        # Atanacak kullanıcıları ekle
-        assignees = User.query.filter(User.id.in_(assigned_to_list)).all()
-        for assignee in assignees:
-            task.assignees.append(assignee)
-        
-        db.session.add(task)
-        db.session.commit()
-        
-        # Acil görevler için mail gönder
-        if priority == 'urgent':
-            try:
-                send_urgent_task_email(task, assignees)
-                flash(f'🚨 Acil görev oluşturuldu ve {len(assigned_to_list)} kişiye mail gönderildi!')
-            except:
-                flash(f'⚠️ Görev oluşturuldu ama mail gönderilemedi. {len(assigned_to_list)} kişiye atandı.')
-        else:
-            if len(assigned_to_list) == 1:
-                flash('Görev başarıyla oluşturuldu!')
+        try:
+            task = Task(
+                title=title,
+                description=description,
+                created_by=current_user.id,
+                priority=priority,
+                due_date=due_date
+            )
+            
+            # Atanacak kullanıcıları ekle
+            assignees = User.query.filter(User.id.in_(assigned_to_list)).all()
+            for assignee in assignees:
+                task.assignees.append(assignee)
+            
+            db.session.add(task)
+            db.session.commit()
+            
+            print(f"✅ Task created successfully: {task.title}")
+            
+            # Acil görevler için mail gönder
+            if priority == 'urgent':
+                try:
+                    send_urgent_task_email(task, assignees)
+                    flash(f'🚨 Acil görev oluşturuldu ve {len(assigned_to_list)} kişiye mail gönderildi!')
+                except Exception as mail_error:
+                    print(f"⚠️ Mail sending error: {mail_error}")
+                    flash(f'⚠️ Görev oluşturuldu ama mail gönderilemedi. {len(assigned_to_list)} kişiye atandı.')
             else:
-                flash(f'Görev başarıyla oluşturuldu ve {len(assigned_to_list)} kişiye atandı!')
-        
-        return redirect(url_for('index'))
+                if len(assigned_to_list) == 1:
+                    flash('Görev başarıyla oluşturuldu!')
+                else:
+                    flash(f'Görev başarıyla oluşturuldu ve {len(assigned_to_list)} kişiye atandı!')
+            
+            return redirect(url_for('index'))
+            
+        except Exception as e:
+            print(f"❌ Task creation error: {e}")
+            db.session.rollback()
+            flash(f'Görev oluşturma hatası: {str(e)}')
+            return redirect(url_for('create_task'))
     
     # Kullanıcı listesi - Manager'lar diğer manager ve çalışanlara atayabilir
     if current_user.role == 'admin':
