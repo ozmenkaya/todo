@@ -4,12 +4,16 @@ from flask_mail import Mail, Message
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 import os
+import pytz
 
 # Models import
 from models import db, User, Task, Comment, Reminder, task_assignments
 
 # Mail konfigürasyonu için kalıcı saklama
 from mail_config import save_mail_config, load_mail_config, apply_mail_config_to_app
+
+# İstanbul timezone
+ISTANBUL_TZ = pytz.timezone('Europe/Istanbul')
 
 # Jinja2 filtre fonksiyonları
 def nl2br(value):
@@ -19,6 +23,28 @@ def nl2br(value):
 def moment_utcnow():
     """Şu anki UTC zamanını döndürür"""
     return datetime.utcnow()
+
+def get_istanbul_time():
+    """İstanbul saatini döndürür"""
+    return datetime.now(ISTANBUL_TZ)
+
+def utc_to_istanbul(utc_dt):
+    """UTC zamanını İstanbul saatine çevirir"""
+    if utc_dt is None:
+        return None
+    if utc_dt.tzinfo is None:
+        utc_dt = pytz.utc.localize(utc_dt)
+    return utc_dt.astimezone(ISTANBUL_TZ)
+
+def istanbul_to_utc(istanbul_dt):
+    """İstanbul saatini UTC'ye çevirir"""
+    if istanbul_dt is None:
+        return None
+    if isinstance(istanbul_dt, str):
+        istanbul_dt = datetime.strptime(istanbul_dt, '%Y-%m-%d %H:%M:%S')
+    if istanbul_dt.tzinfo is None:
+        istanbul_dt = ISTANBUL_TZ.localize(istanbul_dt)
+    return istanbul_dt.astimezone(pytz.utc).replace(tzinfo=None)
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here-change-in-production')
@@ -72,6 +98,12 @@ login_manager.login_view = 'login'
 
 # Jinja2 filtrelerini kaydet
 app.jinja_env.filters['nl2br'] = nl2br
+app.jinja_env.filters['istanbul_time'] = utc_to_istanbul
+app.jinja_env.globals['get_istanbul_time'] = get_istanbul_time
+app.jinja_env.globals['moment'] = {
+    'utcnow': moment_utcnow,
+    'istanbul_now': get_istanbul_time
+}
 app.jinja_env.globals['moment'] = type('obj', (object,), {'utcnow': moment_utcnow})
 
 @login_manager.user_loader
@@ -191,7 +223,10 @@ def create_task():
         
         due_date = None
         if due_date_str:
-            due_date = datetime.strptime(due_date_str, '%Y-%m-%d')
+            # Kullanıcıdan gelen tarih İstanbul saati olarak kabul edilir
+            istanbul_dt = datetime.strptime(due_date_str, '%Y-%m-%d')
+            # İstanbul saatini UTC'ye çevir
+            due_date = istanbul_to_utc(istanbul_dt)
         
         # Yeni görev oluştur
         task = Task(

@@ -91,6 +91,12 @@
                 <i class="fas fa-tasks"></i> Helmex
             </a>
             
+            <!-- İstanbul Saati -->
+            <div class="navbar-text text-white me-3">
+                <i class="fas fa-clock"></i> 
+                <span id="istanbul-time">{{ get_istanbul_time().strftime('%d.%m.%Y %H:%M') }}</span>
+            </div>
+            
             <div class="navbar-nav ms-auto">
                 {% if current_user.is_authenticated %}
                     <!-- Anımsatıcı Bildirimi -->
@@ -215,6 +221,25 @@
         // Sayfa yüklendiğinde ve her 5 dakikada bir kontrol et
         checkTodayReminders();
         setInterval(checkTodayReminders, 300000); // 5 dakika
+        
+        // İstanbul saatini güncelle
+        function updateIstanbulTime() {
+            const now = new Date();
+            // UTC'ye göre İstanbul saati (+3 saat)
+            const istanbulTime = new Date(now.getTime() + (3 * 60 * 60 * 1000));
+            const timeString = istanbulTime.toLocaleString('tr-TR', {
+                day: '2-digit',
+                month: '2-digit', 
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            document.getElementById('istanbul-time').textContent = timeString;
+        }
+        
+        // Her dakika saati güncelle
+        updateIstanbulTime();
+        setInterval(updateIstanbulTime, 60000); // 1 dakika
     });
     </script>
     {% endif %}
