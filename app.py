@@ -12,8 +12,17 @@ from models import db, User, Task, Comment, Reminder, task_assignments
 # Mail konfigürasyonu için kalıcı saklama
 from mail_config import save_mail_config, load_mail_config, apply_mail_config_to_app
 
-# İstanbul timezone
-ISTANBUL_TZ = pytz.timezone('Europe/Istanbul')
+# Timezone ayarları import
+from timezone_config import (
+    load_timezone_config, save_timezone_config, get_popular_timezones, 
+    get_all_timezones, validate_timezone, get_current_timezone
+)
+
+# İstanbul timezone - dinamik olarak yüklenecek
+def get_current_timezone_obj():
+    """Mevcut timezone objesini döndürür"""
+    config = load_timezone_config()
+    return pytz.timezone(config['timezone'])
 
 # Jinja2 filtre fonksiyonları
 def nl2br(value):
@@ -25,25 +34,28 @@ def moment_utcnow():
     return datetime.utcnow()
 
 def get_istanbul_time():
-    """İstanbul saatini döndürür"""
-    return datetime.now(ISTANBUL_TZ)
+    """Mevcut timezone'da saati döndürür"""
+    current_tz = get_current_timezone_obj()
+    return datetime.now(current_tz)
 
 def utc_to_istanbul(utc_dt):
-    """UTC zamanını İstanbul saatine çevirir"""
+    """UTC zamanını mevcut timezone'a çevirir"""
     if utc_dt is None:
         return None
+    current_tz = get_current_timezone_obj()
     if utc_dt.tzinfo is None:
         utc_dt = pytz.utc.localize(utc_dt)
-    return utc_dt.astimezone(ISTANBUL_TZ)
+    return utc_dt.astimezone(current_tz)
 
 def istanbul_to_utc(istanbul_dt):
-    """İstanbul saatini UTC'ye çevirir"""
+    """Mevcut timezone'ı UTC'ye çevirir"""
     if istanbul_dt is None:
         return None
     if isinstance(istanbul_dt, str):
         istanbul_dt = datetime.strptime(istanbul_dt, '%Y-%m-%d %H:%M:%S')
+    current_tz = get_current_timezone_obj()
     if istanbul_dt.tzinfo is None:
-        istanbul_dt = ISTANBUL_TZ.localize(istanbul_dt)
+        istanbul_dt = current_tz.localize(istanbul_dt)
     return istanbul_dt.astimezone(pytz.utc).replace(tzinfo=None)
 
 app = Flask(__name__)
@@ -692,6 +704,43 @@ def api_today_reminders():
     
     return jsonify(reminder_list)
 
+@app.route('/api/current-time')
+def api_current_time():
+    """Mevcut saati JSON olarak döndürür"""
+    config = load_timezone_config()
+    current_tz = pytz.timezone(config['timezone'])
+    current_time = datetime.now(current_tz)
+    
+    return jsonify({
+        'time': current_time.strftime(config['display_format']),
+        'timezone': config['timezone'],
+        'timestamp': current_time.isoformat()
+    })
+
+@app.route('/api/timezone-preview')
+def api_timezone_preview():
+    """Seçilen timezone'ın önizlemesini döndürür"""
+    timezone_str = request.args.get('tz', 'Europe/Istanbul')
+    
+    try:
+        if validate_timezone(timezone_str):
+            tz = pytz.timezone(timezone_str)
+            current_time = datetime.now(tz)
+            
+            # Varsayılan format kullan
+            config = load_timezone_config()
+            time_str = current_time.strftime(config['display_format'])
+            
+            return jsonify({
+                'time': time_str,
+                'timezone': timezone_str,
+                'timestamp': current_time.isoformat()
+            })
+        else:
+            return jsonify({'error': 'Invalid timezone'}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 def create_admin_user():
     """İlk admin kullanıcıyı oluştur"""
     admin = User.query.filter_by(username='admin').first()
@@ -917,6 +966,54 @@ def mail_settings():
             print(f"❌ Mail ayarları güncelleme hatası: {e}")
     
     return render_template('mail_settings.html', config=app.config)
+
+@app.route('/admin/timezone-settings', methods=['GET', 'POST'])
+@login_required
+def timezone_settings():
+    """Timezone ayarları sayfası"""
+    if current_user.role != 'admin':
+        flash('Bu sayfaya erişim yetkiniz yok!')
+        return redirect(url_for('index'))
+    
+    if request.method == 'POST':
+        try:
+            timezone = request.form.get('timezone')
+            display_format = request.form.get('display_format', '%d.%m.%Y %H:%M')
+            date_format = request.form.get('date_format', '%d.%m.%Y')
+            time_format = request.form.get('time_format', '%H:%M')
+            
+            # Timezone validation
+            if not validate_timezone(timezone):
+                flash('❌ Geçersiz timezone seçimi!', 'danger')
+                return redirect(url_for('timezone_settings'))
+            
+            # Yeni ayarları kaydet
+            new_config = {
+                'timezone': timezone,
+                'display_format': display_format,
+                'date_format': date_format,
+                'time_format': time_format
+            }
+            
+            if save_timezone_config(new_config):
+                flash('✅ Timezone ayarları başarıyla güncellendi!', 'success')
+                print(f"🕐 Timezone güncellendi: {timezone}")
+            else:
+                flash('❌ Timezone ayarları kaydedilemedi!', 'danger')
+                
+        except Exception as e:
+            flash(f'❌ Timezone ayarları güncellenirken hata oluştu: {str(e)}', 'danger')
+            print(f"❌ Timezone ayarları güncelleme hatası: {e}")
+    
+    # Mevcut ayarları yükle
+    current_config = load_timezone_config()
+    popular_timezones = get_popular_timezones()
+    all_timezones = get_all_timezones()
+    
+    return render_template('timezone_settings.html', 
+                         config=current_config,
+                         popular_timezones=popular_timezones,
+                         all_timezones=all_timezones)
 
 @app.route('/debug/mail')
 @login_required

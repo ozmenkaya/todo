@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}Timezone Ayarları - Helmex{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="fas fa-clock"></i> Timezone Ayarları</h4>
+                <small class="text-muted">Sistemin tarih ve saat görünümünü ayarlayın</small>
+            </div>
+            <div class="card-body">
+                
+                <!-- Mevcut Ayarlar Özeti -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6><i class="fas fa-info-circle text-primary"></i> Mevcut Ayarlar</h6>
+                                <ul class="list-unstyled mb-0">
+                                    <li><strong>Timezone:</strong> {{ config.timezone }}</li>
+                                    <li><strong>Örnek Tarih:</strong> {{ get_istanbul_time().strftime(config.display_format) }}</li>
+                                    <li><strong>Sadece Tarih:</strong> {{ get_istanbul_time().strftime(config.date_format) }}</li>
+                                    <li><strong>Sadece Saat:</strong> {{ get_istanbul_time().strftime(config.time_format) }}</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h5><i class="fas fa-clock"></i></h5>
+                                <h6>Şu Anki Saat</h6>
+                                <h4 id="current-time">{{ get_istanbul_time().strftime(config.display_format) }}</h4>
+                                <small>{{ config.timezone }}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Timezone Ayarlama Formu -->
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="timezone" class="form-label">Timezone Seçimi</label>
+                                <select class="form-select" id="timezone" name="timezone" required>
+                                    <optgroup label="Popüler Timezone'lar">
+                                        {% for tz_value, tz_label in popular_timezones %}
+                                        <option value="{{ tz_value }}" 
+                                                {% if config.timezone == tz_value %}selected{% endif %}>
+                                            {{ tz_label }}
+                                        </option>
+                                        {% endfor %}
+                                    </optgroup>
+                                    <optgroup label="Tüm Timezone'lar">
+                                        {% for tz in all_timezones %}
+                                        {% if tz not in popular_timezones|map(attribute=0)|list %}
+                                        <option value="{{ tz }}" 
+                                                {% if config.timezone == tz %}selected{% endif %}>
+                                            {{ tz }}
+                                        </option>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </optgroup>
+                                </select>
+                                <small class="form-text text-muted">
+                                    <i class="fas fa-info-circle"></i> 
+                                    Sistemde kullanılacak timezone'ı seçin
+                                </small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="display_format" class="form-label">Tarih/Saat Formatı</label>
+                                <select class="form-select" id="display_format" name="display_format">
+                                    <option value="%d.%m.%Y %H:%M" {% if config.display_format == '%d.%m.%Y %H:%M' %}selected{% endif %}>
+                                        DD.MM.YYYY HH:MM ({{ get_istanbul_time().strftime('%d.%m.%Y %H:%M') }})
+                                    </option>
+                                    <option value="%d/%m/%Y %H:%M" {% if config.display_format == '%d/%m/%Y %H:%M' %}selected{% endif %}>
+                                        DD/MM/YYYY HH:MM ({{ get_istanbul_time().strftime('%d/%m/%Y %H:%M') }})
+                                    </option>
+                                    <option value="%Y-%m-%d %H:%M" {% if config.display_format == '%Y-%m-%d %H:%M' %}selected{% endif %}>
+                                        YYYY-MM-DD HH:MM ({{ get_istanbul_time().strftime('%Y-%m-%d %H:%M') }})
+                                    </option>
+                                    <option value="%d.%m.%Y %H:%M:%S" {% if config.display_format == '%d.%m.%Y %H:%M:%S' %}selected{% endif %}>
+                                        DD.MM.YYYY HH:MM:SS ({{ get_istanbul_time().strftime('%d.%m.%Y %H:%M:%S') }})
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="date_format" class="form-label">Sadece Tarih Formatı</label>
+                                <select class="form-select" id="date_format" name="date_format">
+                                    <option value="%d.%m.%Y" {% if config.date_format == '%d.%m.%Y' %}selected{% endif %}>
+                                        DD.MM.YYYY ({{ get_istanbul_time().strftime('%d.%m.%Y') }})
+                                    </option>
+                                    <option value="%d/%m/%Y" {% if config.date_format == '%d/%m/%Y' %}selected{% endif %}>
+                                        DD/MM/YYYY ({{ get_istanbul_time().strftime('%d/%m/%Y') }})
+                                    </option>
+                                    <option value="%Y-%m-%d" {% if config.date_format == '%Y-%m-%d' %}selected{% endif %}>
+                                        YYYY-MM-DD ({{ get_istanbul_time().strftime('%Y-%m-%d') }})
+                                    </option>
+                                    <option value="%d %B %Y" {% if config.date_format == '%d %B %Y' %}selected{% endif %}>
+                                        DD Month YYYY ({{ get_istanbul_time().strftime('%d %B %Y') }})
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="time_format" class="form-label">Sadece Saat Formatı</label>
+                                <select class="form-select" id="time_format" name="time_format">
+                                    <option value="%H:%M" {% if config.time_format == '%H:%M' %}selected{% endif %}>
+                                        24 Saat ({{ get_istanbul_time().strftime('%H:%M') }})
+                                    </option>
+                                    <option value="%H:%M:%S" {% if config.time_format == '%H:%M:%S' %}selected{% endif %}>
+                                        24 Saat + Saniye ({{ get_istanbul_time().strftime('%H:%M:%S') }})
+                                    </option>
+                                    <option value="%I:%M %p" {% if config.time_format == '%I:%M %p' %}selected{% endif %}>
+                                        12 Saat ({{ get_istanbul_time().strftime('%I:%M %p') }})
+                                    </option>
+                                    <option value="%I:%M:%S %p" {% if config.time_format == '%I:%M:%S %p' %}selected{% endif %}>
+                                        12 Saat + Saniye ({{ get_istanbul_time().strftime('%I:%M:%S %p') }})
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Ayarları Kaydet
+                                </button>
+                                <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left"></i> Ana Sayfaya Dön
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Timezone Açıklamaları -->
+                <div class="mt-4">
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-lightbulb"></i> Bilgilendirme</h6>
+                        <ul class="mb-0">
+                            <li><strong>Timezone:</strong> Sistemde kullanılacak saat dilimi. Tüm tarih/saat gösterimleri bu ayara göre olacak.</li>
+                            <li><strong>Format Ayarları:</strong> Tarihlerin nasıl görüntüleneceğini belirler. Örnek görünümler anlık olarak gösterilir.</li>
+                            <li><strong>Popüler Seçenekler:</strong> En yaygın kullanılan timezone'lar listede üstte görünür.</li>
+                            <li><strong>Otomatik Güncelleme:</strong> Ayarlar kaydedildikten sonra tüm sistem yeni timezone'a göre çalışır.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Saati canlı güncelle
+function updateCurrentTime() {
+    // Bu işlevi backend'den al
+    fetch('/api/current-time')
+        .then(response => response.json())
+        .then(data => {
+            if (data.time) {
+                document.getElementById('current-time').textContent = data.time;
+            }
+        })
+        .catch(error => {
+            // Hata durumunda browser'ın local saatini kullan
+            const now = new Date();
+            document.getElementById('current-time').textContent = now.toLocaleString('tr-TR');
+        });
+}
+
+// Her 30 saniyede bir güncelle
+setInterval(updateCurrentTime, 30000);
+
+// Timezone seçimi değiştiğinde preview göster
+document.getElementById('timezone').addEventListener('change', function() {
+    const selectedTz = this.value;
+    // Backend'den seçilen timezone'ın örnek saatini al
+    fetch('/api/timezone-preview?tz=' + encodeURIComponent(selectedTz))
+        .then(response => response.json())
+        .then(data => {
+            if (data.time && data.timezone) {
+                const timeElement = document.getElementById('current-time');
+                timeElement.textContent = data.time;
+                timeElement.nextElementSibling.textContent = data.timezone;
+            }
+        })
+        .catch(error => {
+            console.log('Timezone preview error:', error);
+        });
+});
+</script>
+{% endblock %}
