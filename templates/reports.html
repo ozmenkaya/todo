@@ -1,0 +1,283 @@
+{% extends "base.html" %}
+
+{% block title %}Raporlar - Helmex{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>
+                    <i class="fas fa-file-alt text-primary"></i> Raporlar
+                </h1>
+                <a href="{{ url_for('create_report') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Yeni Rapor
+                </a>
+            </div>
+            
+            <!-- Tab navigation -->
+            <ul class="nav nav-tabs" id="reportTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="my-reports-tab" data-bs-toggle="tab" data-bs-target="#my-reports" type="button" role="tab">
+                        <i class="fas fa-user"></i> Raporlarım ({{ my_reports|length }})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="shared-reports-tab" data-bs-toggle="tab" data-bs-target="#shared-reports" type="button" role="tab">
+                        <i class="fas fa-share"></i> Paylaşılanlar ({{ shared_reports|length }})
+                    </button>
+                </li>
+                {% if current_user.role in ['admin', 'manager'] %}
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="all-reports-tab" data-bs-toggle="tab" data-bs-target="#all-reports" type="button" role="tab">
+                        <i class="fas fa-globe"></i> Tüm Raporlar ({{ all_reports|length }})
+                    </button>
+                </li>
+                {% endif %}
+            </ul>
+            
+            <!-- Tab content -->
+            <div class="tab-content mt-3" id="reportTabsContent">
+                <!-- Raporlarım -->
+                <div class="tab-pane fade show active" id="my-reports" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Oluşturduğunuz Raporlar</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if my_reports %}
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Başlık</th>
+                                                <th>Tarih</th>
+                                                <th>Gizlilik</th>
+                                                <th>Paylaşılan</th>
+                                                <th>Oluşturulma</th>
+                                                <th>İşlemler</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for report in my_reports %}
+                                            <tr>
+                                                <td>
+                                                    <a href="{{ url_for('report_detail', report_id=report.id) }}" class="text-decoration-none">
+                                                        <strong>{{ report.title }}</strong>
+                                                    </a>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-info">{{ report.report_date.strftime('%d.%m.%Y') }}</span>
+                                                </td>
+                                                <td>
+                                                    {% if report.is_private %}
+                                                        <span class="badge bg-warning">Özel</span>
+                                                    {% else %}
+                                                        <span class="badge bg-success">Herkese Açık</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-secondary">{{ report.shared_with|length }} kişi</span>
+                                                </td>
+                                                <td>
+                                                    <small class="text-muted">{{ report.created_at|format_datetime }}</small>
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group" role="group">
+                                                        <a href="{{ url_for('report_detail', report_id=report.id) }}" class="btn btn-sm btn-outline-primary">
+                                                            <i class="fas fa-eye"></i>
+                                                        </a>
+                                                        <a href="{{ url_for('edit_report', report_id=report.id) }}" class="btn btn-sm btn-outline-secondary">
+                                                            <i class="fas fa-edit"></i>
+                                                        </a>
+                                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteReport({{ report.id }}, '{{ report.title|escape }}')">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-5">
+                                    <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                                    <p class="text-muted">Henüz rapor oluşturmadınız.</p>
+                                    <a href="{{ url_for('create_report') }}" class="btn btn-primary">
+                                        <i class="fas fa-plus"></i> İlk Raporunuzu Oluşturun
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Paylaşılan Raporlar -->
+                <div class="tab-pane fade" id="shared-reports" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Sizinle Paylaşılan Raporlar</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if shared_reports %}
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Başlık</th>
+                                                <th>Yazar</th>
+                                                <th>Tarih</th>
+                                                <th>Paylaşım Tarihi</th>
+                                                <th>İşlemler</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for report in shared_reports %}
+                                            <tr>
+                                                <td>
+                                                    <a href="{{ url_for('report_detail', report_id=report.id) }}" class="text-decoration-none">
+                                                        <strong>{{ report.title }}</strong>
+                                                    </a>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-info">{{ report.author.username }}</span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-secondary">{{ report.report_date.strftime('%d.%m.%Y') }}</span>
+                                                </td>
+                                                <td>
+                                                    <small class="text-muted">{{ report.created_at|format_datetime }}</small>
+                                                </td>
+                                                <td>
+                                                    <a href="{{ url_for('report_detail', report_id=report.id) }}" class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-eye"></i> Görüntüle
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-5">
+                                    <i class="fas fa-share fa-3x text-muted mb-3"></i>
+                                    <p class="text-muted">Henüz sizinle paylaşılmış rapor bulunmuyor.</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tüm Raporlar (Admin/Manager) -->
+                {% if current_user.role in ['admin', 'manager'] %}
+                <div class="tab-pane fade" id="all-reports" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                {% if current_user.role == 'admin' %}
+                                Tüm Herkese Açık Raporlar
+                                {% else %}
+                                Departman Raporları
+                                {% endif %}
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {% if all_reports %}
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Başlık</th>
+                                                <th>Yazar</th>
+                                                <th>Departman</th>
+                                                <th>Tarih</th>
+                                                <th>Oluşturulma</th>
+                                                <th>İşlemler</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for report in all_reports %}
+                                            <tr>
+                                                <td>
+                                                    <a href="{{ url_for('report_detail', report_id=report.id) }}" class="text-decoration-none">
+                                                        <strong>{{ report.title }}</strong>
+                                                    </a>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-info">{{ report.author.username }}</span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-secondary">{{ report.author.department or 'Yok' }}</span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-primary">{{ report.report_date.strftime('%d.%m.%Y') }}</span>
+                                                </td>
+                                                <td>
+                                                    <small class="text-muted">{{ report.created_at|format_datetime }}</small>
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group" role="group">
+                                                        <a href="{{ url_for('report_detail', report_id=report.id) }}" class="btn btn-sm btn-outline-primary">
+                                                            <i class="fas fa-eye"></i>
+                                                        </a>
+                                                        {% if current_user.role == 'admin' %}
+                                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteReport({{ report.id }}, '{{ report.title|escape }}')">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                        {% endif %}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-5">
+                                    <i class="fas fa-globe fa-3x text-muted mb-3"></i>
+                                    <p class="text-muted">Henüz herkese açık rapor bulunmuyor.</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Silme Onay Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Raporu Sil</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Bu raporu silmek istediğinizden emin misiniz?</p>
+                <p><strong id="reportTitle"></strong></p>
+                <p class="text-danger">Bu işlem geri alınamaz.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <form id="deleteForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Sil</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function deleteReport(reportId, reportTitle) {
+    document.getElementById('reportTitle').textContent = reportTitle;
+    document.getElementById('deleteForm').action = `/reports/${reportId}/delete`;
+    
+    var modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    modal.show();
+}
+</script>
+{% endblock %}

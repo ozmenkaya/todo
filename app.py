@@ -7,7 +7,7 @@ import os
 import pytz
 
 # Models import
-from models import db, User, Task, Comment, Reminder, task_assignments
+from models import db, User, Task, Comment, Reminder, Report, ReportComment, task_assignments, report_shares
 
 # Mail konfigürasyonu için kalıcı saklama
 from mail_config import save_mail_config, load_mail_config, apply_mail_config_to_app
@@ -1124,6 +1124,312 @@ def delete_task(task_id):
     
     return redirect(url_for('index'))
 
+# =============================================================================
+# RAPOR SİSTEMİ
+# =============================================================================
+
+# Raporlar ana sayfası
+@app.route('/reports')
+@login_required
+def reports():
+    """Rapor listesi sayfası"""
+    # Kullanıcının kendi raporları
+    my_reports = Report.query.filter_by(author_id=current_user.id).order_by(Report.report_date.desc()).all()
+    
+    # Kullanıcıya paylaşılan raporlar
+    shared_reports = Report.query.join(report_shares).filter(report_shares.c.user_id == current_user.id).order_by(Report.report_date.desc()).all()
+    
+    # Admin ve manager'lar tüm raporları görebilir
+    if current_user.role in ['admin', 'manager']:
+        if current_user.role == 'admin':
+            all_reports = Report.query.filter_by(is_private=False).order_by(Report.report_date.desc()).all()
+        else:
+            # Manager kendi departmanındaki raporları görebilir
+            dept_users = User.query.filter_by(department=current_user.department).all()
+            user_ids = [user.id for user in dept_users]
+            all_reports = Report.query.filter(Report.author_id.in_(user_ids), Report.is_private==False).order_by(Report.report_date.desc()).all()
+    else:
+        all_reports = []
+    
+    return render_template('reports.html', 
+                         my_reports=my_reports, 
+                         shared_reports=shared_reports,
+                         all_reports=all_reports)
+
+# Yeni rapor oluşturma
+@app.route('/reports/create', methods=['GET', 'POST'])
+@login_required
+def create_report():
+    """Yeni rapor oluşturma"""
+    if request.method == 'POST':
+        title = request.form.get('title')
+        content = request.form.get('content')
+        report_date = request.form.get('report_date')
+        is_private = request.form.get('is_private') == 'on'
+        shared_users = request.form.getlist('shared_users')  # Paylaşılacak kullanıcılar
+        
+        if not title or not content or not report_date:
+            flash('Tüm alanlar zorunludur!', 'error')
+            return redirect(url_for('create_report'))
+        
+        try:
+            # Tarih dönüşümü
+            report_date_obj = datetime.strptime(report_date, '%Y-%m-%d').date()
+            
+            # Yeni rapor oluştur
+            report = Report(
+                title=title,
+                content=content,
+                report_date=report_date_obj,
+                is_private=is_private,
+                author_id=current_user.id
+            )
+            
+            db.session.add(report)
+            db.session.flush()  # ID'yi almak için flush
+            
+            # Paylaşım işlemi
+            if shared_users:
+                for user_id in shared_users:
+                    if user_id and user_id != str(current_user.id):  # Kendisi ile paylaşmasın
+                        try:
+                            user_id_int = int(user_id)
+                            # Kullanıcının var olup olmadığını kontrol et
+                            if User.query.get(user_id_int):
+                                db.session.execute(
+                                    report_shares.insert().values(
+                                        report_id=report.id,
+                                        user_id=user_id_int
+                                    )
+                                )
+                        except (ValueError, TypeError):
+                            continue
+            
+            db.session.commit()
+            
+            flash('Rapor başarıyla oluşturuldu!', 'success')
+            return redirect(url_for('reports'))
+            
+        except ValueError:
+            flash('Geçersiz tarih formatı!', 'error')
+            return redirect(url_for('create_report'))
+        except Exception as e:
+            flash(f'Hata: {str(e)}', 'error')
+            return redirect(url_for('create_report'))
+    
+    # GET request - mevcut kullanıcıları getir
+    users = User.query.filter(User.id != current_user.id).order_by(User.username).all()
+    return render_template('create_report.html', users=users)
+
+# Rapor detay sayfası
+@app.route('/reports/<int:report_id>')
+@login_required
+def report_detail(report_id):
+    """Rapor detay sayfası"""
+    report = Report.query.get_or_404(report_id)
+    
+    # Yetki kontrolü
+    can_view = (report.author_id == current_user.id or 
+               current_user in report.shared_with or 
+               (current_user.role == 'admin') or
+               (current_user.role == 'manager' and report.author.department == current_user.department and not report.is_private))
+    
+    if not can_view:
+        flash('Bu raporu görüntüleme yetkiniz yok!', 'error')
+        return redirect(url_for('reports'))
+    
+    # Yorumları getir
+    comments = ReportComment.query.filter_by(report_id=report_id).order_by(ReportComment.created_at.desc()).all()
+    
+    # Paylaşılabilen kullanıcıları getir (aynı departmandaki kullanıcılar)
+    if current_user.department:
+        shareable_users = User.query.filter(
+            User.department == current_user.department,
+            User.id != current_user.id
+        ).all()
+    else:
+        shareable_users = []
+    
+    return render_template('report_detail.html', 
+                         report=report, 
+                         comments=comments,
+                         shareable_users=shareable_users)
+
+# Rapor paylaşma
+@app.route('/reports/<int:report_id>/share', methods=['POST'])
+@login_required
+def share_report(report_id):
+    """Raporu belirli kullanıcılarla paylaş"""
+    report = Report.query.get_or_404(report_id)
+    
+    # Yetki kontrolü - sadece rapor sahibi paylaşabilir
+    if report.author_id != current_user.id:
+        flash('Bu raporu paylaşma yetkiniz yok!', 'error')
+        return redirect(url_for('report_detail', report_id=report_id))
+    
+    user_ids = request.form.getlist('user_ids')
+    
+    if not user_ids:
+        flash('Lütfen en az bir kullanıcı seçin!', 'error')
+        return redirect(url_for('report_detail', report_id=report_id))
+    
+    try:
+        # Mevcut paylaşımları temizle
+        report.shared_with.clear()
+        
+        # Yeni paylaşımları ekle
+        for user_id in user_ids:
+            user = User.query.get(user_id)
+            if user and user.department == current_user.department:
+                report.shared_with.append(user)
+        
+        db.session.commit()
+        flash('Rapor başarıyla paylaşıldı!', 'success')
+        
+    except Exception as e:
+        flash(f'Hata: {str(e)}', 'error')
+    
+    return redirect(url_for('report_detail', report_id=report_id))
+
+# Rapor yorumu ekleme
+@app.route('/reports/<int:report_id>/comment', methods=['POST'])
+@login_required
+def add_report_comment(report_id):
+    """Rapor yorumu ekleme"""
+    report = Report.query.get_or_404(report_id)
+    
+    # Yetki kontrolü
+    can_comment = (report.author_id == current_user.id or 
+                  current_user in report.shared_with or 
+                  (current_user.role == 'admin') or
+                  (current_user.role == 'manager' and report.author.department == current_user.department and not report.is_private))
+    
+    if not can_comment:
+        flash('Bu raporu yorumlama yetkiniz yok!', 'error')
+        return redirect(url_for('reports'))
+    
+    content = request.form.get('content')
+    
+    if not content:
+        flash('Yorum içeriği boş olamaz!', 'error')
+        return redirect(url_for('report_detail', report_id=report_id))
+    
+    try:
+        comment = ReportComment(
+            content=content,
+            report_id=report_id,
+            user_id=current_user.id
+        )
+        
+        db.session.add(comment)
+        db.session.commit()
+        
+        flash('Yorum başarıyla eklendi!', 'success')
+        
+    except Exception as e:
+        flash(f'Hata: {str(e)}', 'error')
+    
+    return redirect(url_for('report_detail', report_id=report_id))
+
+# Rapor düzenleme
+@app.route('/reports/<int:report_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_report(report_id):
+    """Rapor düzenleme"""
+    report = Report.query.get_or_404(report_id)
+    
+    # Yetki kontrolü - sadece rapor sahibi düzenleyebilir
+    if report.author_id != current_user.id:
+        flash('Bu raporu düzenleme yetkiniz yok!', 'error')
+        return redirect(url_for('report_detail', report_id=report_id))
+    
+    if request.method == 'POST':
+        title = request.form.get('title')
+        content = request.form.get('content')
+        report_date = request.form.get('report_date')
+        is_private = request.form.get('is_private') == 'on'
+        shared_users = request.form.getlist('shared_users')  # Paylaşılacak kullanıcılar
+        
+        if not title or not content or not report_date:
+            flash('Tüm alanlar zorunludur!', 'error')
+            return redirect(url_for('edit_report', report_id=report_id))
+        
+        try:
+            # Tarih dönüşümü
+            report_date_obj = datetime.strptime(report_date, '%Y-%m-%d').date()
+            
+            # Raporu güncelle
+            report.title = title
+            report.content = content
+            report.report_date = report_date_obj
+            report.is_private = is_private
+            report.updated_at = datetime.utcnow()
+            
+            # Mevcut paylaşımları sil
+            db.session.execute(
+                report_shares.delete().where(report_shares.c.report_id == report_id)
+            )
+            
+            # Yeni paylaşımları ekle
+            if shared_users:
+                for user_id in shared_users:
+                    if user_id and user_id != str(current_user.id):  # Kendisi ile paylaşmasın
+                        try:
+                            user_id_int = int(user_id)
+                            # Kullanıcının var olup olmadığını kontrol et
+                            if User.query.get(user_id_int):
+                                db.session.execute(
+                                    report_shares.insert().values(
+                                        report_id=report_id,
+                                        user_id=user_id_int
+                                    )
+                                )
+                        except (ValueError, TypeError):
+                            continue
+            
+            db.session.commit()
+            
+            flash('Rapor başarıyla güncellendi!', 'success')
+            return redirect(url_for('report_detail', report_id=report_id))
+            
+        except ValueError:
+            flash('Geçersiz tarih formatı!', 'error')
+            return redirect(url_for('edit_report', report_id=report_id))
+        except Exception as e:
+            flash(f'Hata: {str(e)}', 'error')
+            return redirect(url_for('edit_report', report_id=report_id))
+    
+    # GET request - mevcut kullanıcıları ve paylaşımları getir
+    users = User.query.filter(User.id != current_user.id).order_by(User.username).all()
+    shared_user_ids = [user.id for user in report.shared_with]
+    
+    return render_template('edit_report.html', report=report, users=users, shared_user_ids=shared_user_ids)
+
+# Rapor silme
+@app.route('/reports/<int:report_id>/delete', methods=['POST'])
+@login_required
+def delete_report(report_id):
+    """Rapor silme"""
+    report = Report.query.get_or_404(report_id)
+    
+    # Yetki kontrolü - sadece rapor sahibi veya admin silebilir
+    if report.author_id != current_user.id and current_user.role != 'admin':
+        flash('Bu raporu silme yetkiniz yok!', 'error')
+        return redirect(url_for('report_detail', report_id=report_id))
+    
+    try:
+        # Raporu sil
+        db.session.delete(report)
+        db.session.commit()
+        
+        flash('Rapor başarıyla silindi!', 'success')
+        
+    except Exception as e:
+        flash(f'Hata: {str(e)}', 'error')
+    
+    return redirect(url_for('reports'))
+
+# =============================================================================
 if __name__ == '__main__':
     import os
     import time

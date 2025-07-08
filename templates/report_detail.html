@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+
+{% block title %}{{ report.title }} - Rapor Detayı - Helmex{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Rapor İçeriği -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="card-title mb-0">
+                            <i class="fas fa-file-alt text-primary"></i> {{ report.title }}
+                        </h3>
+                        {% if report.author_id == current_user.id %}
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-cog"></i> İşlemler
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ url_for('edit_report', report_id=report.id) }}">
+                                    <i class="fas fa-edit"></i> Düzenle
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><button class="dropdown-item text-danger" onclick="deleteReport({{ report.id }}, '{{ report.title|escape }}')">
+                                    <i class="fas fa-trash"></i> Sil
+                                </button></li>
+                            </ul>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Rapor Bilgileri -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Yazar:</strong> {{ report.author.username }}
+                            <span class="badge bg-info ms-2">{{ report.author.department or 'Yok' }}</span>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Rapor Tarihi:</strong> 
+                            <span class="badge bg-primary">{{ report.report_date.strftime('%d.%m.%Y') }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Oluşturulma:</strong> {{ report.created_at|format_datetime }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Son Güncelleme:</strong> {{ report.updated_at|format_datetime }}
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Gizlilik:</strong> 
+                            {% if report.is_private %}
+                                <span class="badge bg-warning">Özel</span>
+                            {% else %}
+                                <span class="badge bg-success">Herkese Açık</span>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Paylaşım:</strong> 
+                            <span class="badge bg-secondary">{{ report.shared_with|length }} kişi</span>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <!-- Rapor İçeriği -->
+                    <div class="report-content">
+                        {{ report.content|nl2br|safe }}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Yorumlar -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title">
+                        <i class="fas fa-comments text-primary"></i> Yorumlar ({{ comments|length }})
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Yorum Ekleme Formu -->
+                    <form method="POST" action="{{ url_for('add_report_comment', report_id=report.id) }}" class="mb-4">
+                        <div class="mb-3">
+                            <label for="content" class="form-label">Yorum Ekle</label>
+                            <textarea class="form-control" id="content" name="content" rows="3" 
+                                      placeholder="Yorumunuzu buraya yazın..." required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-comment"></i> Yorum Ekle
+                        </button>
+                    </form>
+                    
+                    <!-- Yorumlar Listesi -->
+                    {% if comments %}
+                        {% for comment in comments %}
+                        <div class="border rounded p-3 mb-3">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <strong>{{ comment.user.username }}</strong>
+                                    <span class="badge bg-info ms-2">{{ comment.user.department or 'Yok' }}</span>
+                                </div>
+                                <small class="text-muted">{{ comment.created_at|format_datetime }}</small>
+                            </div>
+                            <p class="mb-0">{{ comment.content|nl2br|safe }}</p>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-comments fa-2x text-muted mb-2"></i>
+                            <p class="text-muted">Henüz yorum yapılmamış. İlk yorumu siz ekleyin!</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Yan Panel -->
+        <div class="col-md-4">
+            <!-- Paylaşım Paneli -->
+            {% if report.author_id == current_user.id %}
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">
+                        <i class="fas fa-share text-success"></i> Rapor Paylaşımı
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('share_report', report_id=report.id) }}">
+                        <div class="mb-3">
+                            <label class="form-label">Paylaşılacak Kişiler</label>
+                            {% if shareable_users %}
+                                {% for user in shareable_users %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" 
+                                           name="user_ids" value="{{ user.id }}" id="user_{{ user.id }}"
+                                           {% if user in report.shared_with %}checked{% endif %}>
+                                    <label class="form-check-label" for="user_{{ user.id }}">
+                                        {{ user.username }}
+                                        <span class="badge bg-secondary ms-1">{{ user.role }}</span>
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <p class="text-muted">Departmanınızda paylaşılacak başka kullanıcı yok.</p>
+                            {% endif %}
+                        </div>
+                        
+                        {% if shareable_users %}
+                        <button type="submit" class="btn btn-success btn-sm">
+                            <i class="fas fa-share"></i> Paylaşımı Güncelle
+                        </button>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Paylaşılan Kişiler -->
+            {% if report.shared_with %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title">
+                        <i class="fas fa-users text-info"></i> Paylaşılan Kişiler
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% for user in report.shared_with %}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <strong>{{ user.username }}</strong>
+                            <br>
+                            <small class="text-muted">{{ user.department or 'Yok' }}</small>
+                        </div>
+                        <span class="badge bg-info">{{ user.role }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Geri Dönüş -->
+            <div class="card mt-4">
+                <div class="card-body text-center">
+                    <a href="{{ url_for('reports') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Raporlara Dön
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Silme Onay Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Raporu Sil</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Bu raporu silmek istediğinizden emin misiniz?</p>
+                <p><strong id="reportTitle"></strong></p>
+                <p class="text-danger">Bu işlem geri alınamaz ve tüm yorumlar da silinir.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <form id="deleteForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Sil</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function deleteReport(reportId, reportTitle) {
+    document.getElementById('reportTitle').textContent = reportTitle;
+    document.getElementById('deleteForm').action = `/reports/${reportId}/delete`;
+    
+    var modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    modal.show();
+}
+
+// Yorum textarea otomatik boyutlandırma
+document.addEventListener('DOMContentLoaded', function() {
+    const textarea = document.getElementById('content');
+    
+    function adjustTextareaHeight() {
+        textarea.style.height = 'auto';
+        textarea.style.height = textarea.scrollHeight + 'px';
+    }
+    
+    textarea.addEventListener('input', adjustTextareaHeight);
+    adjustTextareaHeight();
+});
+</script>
+
+<style>
+.report-content {
+    background-color: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 0.375rem;
+    border: 1px solid #e9ecef;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+</style>
+{% endblock %}

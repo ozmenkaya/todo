@@ -116,6 +116,13 @@
                             <li><a class="dropdown-item" href="{{ url_for('index') }}">Ana Sayfa</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('reminders') }}">Anımsatıcılarım</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('add_reminder') }}">Yeni Anımsatıcı</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('reports') }}">
+                                <i class="fas fa-file-alt"></i> Raporlarım
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('create_report') }}">
+                                <i class="fas fa-plus"></i> Yeni Rapor
+                            </a></li>
                             {% if current_user.role in ['admin', 'manager'] %}
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="{{ url_for('create_task') }}">Yeni Görev</a></li>

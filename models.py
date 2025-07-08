@@ -10,6 +10,13 @@ task_assignments = db.Table('task_assignments',
     db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True)
 )
 
+# Many-to-Many ilişki tablosu (rapor paylaşımları için)
+report_shares = db.Table('report_shares',
+    db.Column('report_id', db.Integer, db.ForeignKey('report.id'), primary_key=True),
+    db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
+    db.Column('shared_at', db.DateTime, default=datetime.utcnow)
+)
+
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -67,3 +74,32 @@ class Reminder(db.Model):
     
     # İlişki
     user = db.relationship('User', backref='reminders')
+
+class Report(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(500), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    report_date = db.Column(db.Date, nullable=False)  # Hangi güne ait rapor
+    is_private = db.Column(db.Boolean, default=True)  # Özel mi yoksa herkese açık mı
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Foreign Key
+    author_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    # İlişkiler
+    author = db.relationship('User', backref='authored_reports')
+    shared_with = db.relationship('User', secondary=report_shares, backref='shared_reports')
+
+class ReportComment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Foreign Keys
+    report_id = db.Column(db.Integer, db.ForeignKey('report.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    # İlişkiler
+    report = db.relationship('Report', backref='comments')
+    user = db.relationship('User', backref='report_comments')
