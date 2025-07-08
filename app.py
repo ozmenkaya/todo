@@ -100,11 +100,10 @@ login_manager.login_view = 'login'
 app.jinja_env.filters['nl2br'] = nl2br
 app.jinja_env.filters['istanbul_time'] = utc_to_istanbul
 app.jinja_env.globals['get_istanbul_time'] = get_istanbul_time
-app.jinja_env.globals['moment'] = {
+app.jinja_env.globals['moment'] = type('obj', (object,), {
     'utcnow': moment_utcnow,
     'istanbul_now': get_istanbul_time
-}
-app.jinja_env.globals['moment'] = type('obj', (object,), {'utcnow': moment_utcnow})
+})
 
 @login_manager.user_loader
 def load_user(user_id):
