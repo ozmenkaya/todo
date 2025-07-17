@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "5005:5005"
+    environment:
+      - FLASK_ENV=production
+      - SECRET_KEY=your-very-secure-secret-key-change-this
+      - DATABASE_URL=sqlite:////app/data/company_tasks.db
+      - CORS_ORIGINS=http://localhost:5005
+    volumes:
+      - app_data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5005/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  app_data:

@@ -1,23 +1,30 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="row">
+<div class="row g-2">
     <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2><i class="fas fa-list-check"></i> Görevler</h2>
+        <!-- Mobile Header -->
+        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-3 mb-sm-4">
+            <h2 class="mb-2 mb-sm-0">
+                <i class="fas fa-list-check"></i> 
+                <span class="d-none d-sm-inline">Görevler</span>
+                <span class="d-inline d-sm-none">Görevler</span>
+            </h2>
             {% if current_user.role in ['admin', 'manager'] %}
-                <a href="{{ url_for('create_task') }}" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> Yeni Görev
+                <a href="{{ url_for('create_task') }}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-plus"></i> 
+                    <span class="d-none d-sm-inline">Yeni Görev</span>
+                    <span class="d-inline d-sm-none">Yeni</span>
                 </a>
             {% endif %}
         </div>
 
-        <!-- Görev Filtreleri -->
-        <div class="card mb-4">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3">
-                        <select class="form-select" id="statusFilter">
+        <!-- Mobile-Optimized Filters -->
+        <div class="card mb-3 mb-sm-4">
+            <div class="card-body p-2 p-sm-3">
+                <div class="row g-2">
+                    <div class="col-6 col-md-3">
+                        <select class="form-select form-select-sm" id="statusFilter">
                             <option value="">Tüm Durumlar</option>
                             <option value="pending">Beklemede</option>
                             <option value="in_progress">Devam Ediyor</option>
@@ -25,8 +32,8 @@
                             <option value="cancelled">İptal Edildi</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
-                        <select class="form-select" id="priorityFilter">
+                    <div class="col-6 col-md-3">
+                        <select class="form-select form-select-sm" id="priorityFilter">
                             <option value="">Tüm Öncelikler</option>
                             <option value="urgent">Acil</option>
                             <option value="high">Yüksek</option>
@@ -34,70 +41,96 @@
                             <option value="low">Düşük</option>
                         </select>
                     </div>
-                    <div class="col-md-6">
-                        <input type="text" class="form-control" id="searchInput" placeholder="Görev ara...">
+                    <div class="col-12 col-md-6">
+                        <input type="text" class="form-control form-control-sm" id="searchInput" placeholder="Görev ara...">
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Bugünün Anımsatıcıları Widget -->
-        <div class="card mb-4" id="todayRemindersCard" style="display: none;">
-            <div class="card-header bg-primary text-white">
-                <h6 class="mb-0">
-                    <i class="fas fa-bell"></i> Bugünün Anımsatıcıları
-                    <a href="{{ url_for('reminders') }}" class="btn btn-sm btn-light ms-2">Tümünü Gör</a>
-                </h6>
+        <!-- Mobile-Optimized Reminders Widget -->
+        <div class="card mb-3 mb-sm-4" id="todayRemindersCard" style="display: none;">
+            <div class="card-header bg-primary text-white p-2 p-sm-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="fas fa-bell"></i> 
+                        <span class="d-none d-sm-inline">Bugünün Anımsatıcıları</span>
+                        <span class="d-inline d-sm-none">Anımsatıcılar</span>
+                    </h6>
+                    <a href="{{ url_for('reminders') }}" class="btn btn-sm btn-light">
+                        <span class="d-none d-sm-inline">Tümünü Gör</span>
+                        <span class="d-inline d-sm-none">Tümü</span>
+                    </a>
+                </div>
             </div>
-            <div class="card-body" id="todayRemindersList">
+            <div class="card-body p-2 p-sm-3" id="todayRemindersList">
                 <!-- Anımsatıcılar buraya yüklenecek -->
             </div>
         </div>
 
-        <!-- Görev Sekmeleri -->
+        <!-- Mobile-Optimized Task Tabs -->
         <div class="card">
-            <div class="card-header">
-                <ul class="nav nav-tabs card-header-tabs" id="taskTabs" role="tablist">
+            <div class="card-header p-0">
+                <ul class="nav nav-tabs card-header-tabs flex-nowrap overflow-auto" id="taskTabs" role="tablist" style="border-bottom: none;">
                     {% if current_user.role == 'admin' %}
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="all-tasks-tab" data-bs-toggle="tab" data-bs-target="#all-tasks" type="button" role="tab">
-                                <i class="fas fa-list"></i> Aktif Görevler <span class="badge bg-primary ms-1">{{ tasks|length }}</span>
+                            <button class="nav-link active text-nowrap px-2 px-sm-3" id="all-tasks-tab" data-bs-toggle="tab" data-bs-target="#all-tasks" type="button" role="tab">
+                                <i class="fas fa-list"></i> 
+                                <span class="d-none d-sm-inline">Aktif Görevler</span>
+                                <span class="d-inline d-sm-none">Aktif</span>
+                                <span class="badge bg-primary ms-1">{{ tasks|length }}</span>
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="completed-tasks-tab" data-bs-toggle="tab" data-bs-target="#completed-tasks" type="button" role="tab">
-                                <i class="fas fa-check-circle"></i> Tamamlananlar <span class="badge bg-success ms-1">{{ completed_tasks|length }}</span>
+                            <button class="nav-link text-nowrap px-2 px-sm-3" id="completed-tasks-tab" data-bs-toggle="tab" data-bs-target="#completed-tasks" type="button" role="tab">
+                                <i class="fas fa-check-circle"></i> 
+                                <span class="d-none d-sm-inline">Tamamlananlar</span>
+                                <span class="d-inline d-sm-none">Tamam</span>
+                                <span class="badge bg-success ms-1">{{ completed_tasks|length }}</span>
                             </button>
                         </li>
                     {% else %}
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="assigned-tasks-tab" data-bs-toggle="tab" data-bs-target="#assigned-tasks" type="button" role="tab">
-                                <i class="fas fa-user"></i> Bana Atananlar <span class="badge bg-info ms-1">{{ assigned_tasks|length }}</span>
+                            <button class="nav-link active text-nowrap px-2 px-sm-3" id="assigned-tasks-tab" data-bs-toggle="tab" data-bs-target="#assigned-tasks" type="button" role="tab">
+                                <i class="fas fa-user"></i> 
+                                <span class="d-none d-sm-inline">Bana Atananlar</span>
+                                <span class="d-inline d-sm-none">Bana</span>
+                                <span class="badge bg-info ms-1">{{ assigned_tasks|length }}</span>
                             </button>
                         </li>
                         {% if created_tasks|length > 0 %}
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="created-tasks-tab" data-bs-toggle="tab" data-bs-target="#created-tasks" type="button" role="tab">
-                                <i class="fas fa-plus-circle"></i> Atadıklarım <span class="badge bg-success ms-1">{{ created_tasks|length }}</span>
+                            <button class="nav-link text-nowrap px-2 px-sm-3" id="created-tasks-tab" data-bs-toggle="tab" data-bs-target="#created-tasks" type="button" role="tab">
+                                <i class="fas fa-plus-circle"></i> 
+                                <span class="d-none d-sm-inline">Atadıklarım</span>
+                                <span class="d-inline d-sm-none">Attığım</span>
+                                <span class="badge bg-success ms-1">{{ created_tasks|length }}</span>
                             </button>
                         </li>
                         {% endif %}
                         {% if current_user.role == 'manager' %}
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="dept-tasks-tab" data-bs-toggle="tab" data-bs-target="#dept-tasks" type="button" role="tab">
-                                <i class="fas fa-building"></i> Departman Görevleri <span class="badge bg-warning ms-1">{{ tasks|length }}</span>
+                            <button class="nav-link text-nowrap px-2 px-sm-3" id="dept-tasks-tab" data-bs-toggle="tab" data-bs-target="#dept-tasks" type="button" role="tab">
+                                <i class="fas fa-building"></i> 
+                                <span class="d-none d-lg-inline">Departman Görevleri</span>
+                                <span class="d-none d-sm-inline d-lg-none">Departman</span>
+                                <span class="d-inline d-sm-none">Dept</span>
+                                <span class="badge bg-warning ms-1">{{ tasks|length }}</span>
                             </button>
                         </li>
                         {% endif %}
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="completed-tasks-tab" data-bs-toggle="tab" data-bs-target="#completed-tasks" type="button" role="tab">
-                                <i class="fas fa-check-circle"></i> Tamamlananlar <span class="badge bg-success ms-1">{{ (assigned_completed_tasks|length + created_completed_tasks|length) if current_user.role != 'employee' else assigned_completed_tasks|length }}</span>
+                            <button class="nav-link text-nowrap px-2 px-sm-3" id="completed-tasks-tab" data-bs-toggle="tab" data-bs-target="#completed-tasks" type="button" role="tab">
+                                <i class="fas fa-check-circle"></i> 
+                                <span class="d-none d-sm-inline">Tamamlananlar</span>
+                                <span class="d-inline d-sm-none">Tamam</span>
+                                <span class="badge bg-success ms-1">{{ (assigned_completed_tasks|length + created_completed_tasks|length) if current_user.role != 'employee' else assigned_completed_tasks|length }}</span>
                             </button>
                         </li>
                     {% endif %}
                 </ul>
             </div>
-            <div class="card-body">
+            <div class="card-body p-2 p-sm-3">
                 <div class="tab-content" id="taskTabsContent">
                     {% if current_user.role == 'admin' %}
                         <!-- Admin: Aktif Görevler -->

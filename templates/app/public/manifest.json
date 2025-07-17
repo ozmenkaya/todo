@@ -1,0 +1,28 @@
+{
+  "name": "Şirket Görev Yönetimi",
+  "short_name": "Görev Yönetimi",
+  "description": "Şirket içi görev ve rapor yönetim sistemi",
+  "theme_color": "#1976d2",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/pwa-512x512.png", 
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "business"],
+  "lang": "tr",
+  "dir": "ltr"
+}

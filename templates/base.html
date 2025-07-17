@@ -2,13 +2,44 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Helmex Tasks">
+    <meta name="application-name" content="Helmex Tasks">
+    <meta name="msapplication-TileColor" content="#0d6efd">
+    <meta name="theme-color" content="#0d6efd">
+    
     <title>{% block title %}Helmex Todo Yönetimi{% endblock %}</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='icons/icon-192x192.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='icons/icon-72x72.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='icons/icon-72x72.png') }}">
+    
+    <!-- Bootstrap & FontAwesome -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
+        /* Mobile-First Responsive Design */
+        :root {
+            --navbar-height: 70px;
+            --border-radius: 12px;
+            --shadow-light: 0 2px 10px rgba(0,0,0,0.1);
+            --shadow-hover: 0 8px 25px rgba(0,0,0,0.15);
+            --transition: all 0.3s ease;
+        }
+        
+        /* Priority & Status Styles - Mobile Optimized */
         .priority-high { border-left: 4px solid #dc3545; }
-        .priority-urgent { border-left: 4px solid #ff0000; background-color: #ffe6e6; }
+        .priority-urgent { 
+            border-left: 4px solid #ff0000; 
+            background-color: #ffe6e6; 
+        }
         .priority-medium { border-left: 4px solid #ffc107; }
         .priority-low { border-left: 4px solid #28a745; }
         
@@ -17,41 +48,98 @@
         .status-completed { background-color: #d4edda; }
         .status-cancelled { background-color: #f8d7da; }
         
-        .navbar-brand {
-            font-weight: bold;
-            font-size: 1.5rem;
+        /* Mobile-First Navbar */
+        .navbar {
+            padding: 0.5rem 1rem;
+            min-height: var(--navbar-height);
         }
         
+        .navbar-brand {
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        
+        /* Mobile Navbar Icons */
+        .main-nav-icons {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        /* Mobile Cards */
         .card {
-            transition: transform 0.2s;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-light);
+            transition: var(--transition);
+            margin-bottom: 1rem;
+            border: none;
         }
         
         .card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-hover);
         }
         
         .task-card {
             margin-bottom: 1rem;
         }
         
+        /* Mobile Content Spacing */
+        .main-content {
+            padding: 1rem;
+        }
+        
+        /* Mobile Typography */
         .due-date-warning {
             color: #dc3545;
             font-weight: bold;
         }
         
+        /* Mobile Table Responsiveness */
+        .table-responsive {
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-light);
+        }
+        
+        .table {
+            margin-bottom: 0;
+        }
+        
+        /* Mobile Button Styles */
+        .btn {
+            border-radius: 8px;
+            transition: var(--transition);
+        }
+        
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+        
+        /* Mobile Form Controls */
+        .form-control, .form-select {
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            transition: var(--transition);
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+        }
+        
+        /* Mobile Sidebar (Hidden by default) */
         .sidebar {
-            min-height: calc(100vh - 56px);
+            min-height: calc(100vh - var(--navbar-height));
             background-color: #f8f9fa;
         }
         
-        .main-content {
-            padding: 20px;
-        }
-        
+        /* Mobile Reminder Cards */
         .reminder-card {
             border-left: 4px solid #17a2b8;
             margin-bottom: 1rem;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-light);
         }
         
         .reminder-overdue {
@@ -69,6 +157,7 @@
             border-left: 4px solid #6c757d;
         }
         
+        /* Mobile Navigation Icons */
         .notification-badge {
             position: absolute;
             top: -5px;
@@ -78,16 +167,23 @@
             border-radius: 50%;
             padding: 2px 6px;
             font-size: 0.75rem;
-            min-width: 20px;
+            min-width: 18px;
+            height: 18px;
             text-align: center;
+            line-height: 14px;
         }
         
         .nav-icon {
-            font-size: 1.25rem;
+            font-size: 1.1rem;
             padding: 0.5rem;
             border-radius: 50%;
-            transition: background-color 0.3s, transform 0.2s;
+            transition: var(--transition);
             position: relative;
+            min-width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .nav-icon:hover {
@@ -97,13 +193,13 @@
         
         .nav-icon-badge {
             position: absolute;
-            top: 0;
-            right: 0;
+            top: 2px;
+            right: 2px;
             background: #dc3545;
             color: white;
             border-radius: 50%;
-            width: 12px;
-            height: 12px;
+            width: 10px;
+            height: 10px;
             border: 2px solid white;
             animation: pulse 2s infinite;
         }
@@ -114,20 +210,14 @@
             100% { transform: scale(1); }
         }
         
-        .main-nav-icons {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-        
         .nav-icon-container {
             position: relative;
         }
         
-        /* Okunma durumu göstergeleri */
+        /* Mobile Read Status Icons */
         .read-status-icon {
-            font-size: 16px !important;
-            margin-left: 8px;
+            font-size: 14px !important;
+            margin-left: 6px;
             vertical-align: middle;
         }
         
@@ -138,102 +228,272 @@
         .read-status-unread {
             color: #ffc107 !important;
         }
+        
+        /* Mobile Specific Styles */
+        @media (max-width: 768px) {
+            .navbar-brand {
+                font-size: 1rem;
+            }
+            
+            .main-nav-icons {
+                gap: 0.25rem;
+            }
+            
+            .nav-icon {
+                font-size: 1rem;
+                padding: 0.4rem;
+                min-width: 35px;
+                height: 35px;
+            }
+            
+            .main-content {
+                padding: 0.5rem;
+            }
+            
+            .card {
+                margin-bottom: 0.75rem;
+            }
+            
+            .card-body {
+                padding: 1rem;
+            }
+            
+            .btn-sm {
+                padding: 0.2rem 0.4rem;
+                font-size: 0.8rem;
+            }
+            
+            .table-responsive {
+                font-size: 0.9rem;
+            }
+            
+            .badge {
+                font-size: 0.7rem;
+            }
+            
+            .notification-badge {
+                min-width: 16px;
+                height: 16px;
+                font-size: 0.7rem;
+                line-height: 12px;
+            }
+            
+            .nav-icon-badge {
+                width: 8px;
+                height: 8px;
+                top: 1px;
+                right: 1px;
+            }
+            
+            /* Mobile Dropdown Menu */
+            .dropdown-menu {
+                font-size: 0.9rem;
+            }
+            
+            /* Mobile Container Padding */
+            .container-fluid {
+                padding-left: 0.5rem;
+                padding-right: 0.5rem;
+            }
+        }
+        
+        /* Extra Small Mobile Devices */
+        @media (max-width: 576px) {
+            .navbar {
+                padding: 0.25rem 0.5rem;
+            }
+            
+            .navbar-brand {
+                font-size: 0.9rem;
+            }
+            
+            .main-nav-icons {
+                gap: 0.1rem;
+            }
+            
+            .nav-icon {
+                font-size: 0.9rem;
+                padding: 0.3rem;
+                min-width: 30px;
+                height: 30px;
+            }
+            
+            .main-content {
+                padding: 0.25rem;
+            }
+            
+            .card-body {
+                padding: 0.75rem;
+            }
+            
+            .btn {
+                font-size: 0.8rem;
+                padding: 0.3rem 0.6rem;
+            }
+            
+            .btn-sm {
+                padding: 0.15rem 0.3rem;
+                font-size: 0.75rem;
+            }
+            
+            .container-fluid {
+                padding-left: 0.25rem;
+                padding-right: 0.25rem;
+            }
+            
+            .col-12 {
+                padding-left: 0.25rem;
+                padding-right: 0.25rem;
+            }
+        }
+        
+        /* Large Screens - Desktop Optimizations */
+        @media (min-width: 992px) {
+            .main-content {
+                padding: 2rem;
+            }
+            
+            .nav-icon {
+                font-size: 1.25rem;
+                min-width: 45px;
+                height: 45px;
+            }
+            
+            .main-nav-icons {
+                gap: 1rem;
+            }
+        }
     </style>
 </head>
 <body>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
         <div class="container-fluid">
             <a class="navbar-brand" href="{{ url_for('index') }}">
-                <i class="fas fa-tasks"></i> Helmex
+                <i class="fas fa-tasks"></i> 
+                <span class="d-none d-sm-inline">Helmex</span>
+                <span class="d-inline d-sm-none">HX</span>
             </a>
             
-            <!-- İstanbul Saati -->
-            <div class="navbar-text text-white me-3">
-                <i class="fas fa-clock"></i> 
-                <span id="istanbul-time">{{ get_istanbul_time().strftime(get_timezone_config().display_format) }}</span>
-            </div>
+            <!-- Mobile Toggle Button -->
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
             
-            <div class="navbar-nav ms-auto">
-                {% if current_user.is_authenticated %}
-                    <!-- Ana Navigasyon İkonları -->
-                    <div class="main-nav-icons me-4">
-                        <!-- Görevler İkonu -->
-                        <div class="nav-icon-container">
-                            <a href="{{ url_for('index') }}" class="nav-link text-white nav-icon" title="Görevler">
-                                <i class="fas fa-tasks"></i>
-                                <span class="nav-icon-badge d-none" id="tasksBadge"></span>
-                            </a>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <!-- İstanbul Saati - Mobile Hidden -->
+                <div class="navbar-text text-white me-auto d-none d-lg-block">
+                    <i class="fas fa-clock"></i> 
+                    <span id="istanbul-time">{{ get_istanbul_time().strftime(get_timezone_config().display_format) }}</span>
+                </div>
+                
+                <div class="navbar-nav ms-auto">
+                    {% if current_user.is_authenticated %}
+                        <!-- Ana Navigasyon İkonları -->
+                        <div class="main-nav-icons me-2 me-lg-4">
+                            <!-- Görevler İkonu -->
+                            <div class="nav-icon-container">
+                                <a href="{{ url_for('index') }}" class="nav-link text-white nav-icon" title="Görevler">
+                                    <i class="fas fa-tasks"></i>
+                                    <span class="nav-icon-badge d-none" id="tasksBadge"></span>
+                                </a>
+                            </div>
+                            
+                            <!-- Hatırlatmalar İkonu -->
+                            <div class="nav-icon-container">
+                                <a href="{{ url_for('reminders') }}" class="nav-link text-white nav-icon" title="Hatırlatmalar">
+                                    <i class="fas fa-bell"></i>
+                                    <span class="nav-icon-badge d-none" id="remindersBadge"></span>
+                                </a>
+                            </div>
+                            
+                            <!-- Raporlar İkonu -->
+                            <div class="nav-icon-container">
+                                <a href="{{ url_for('reports') }}" class="nav-link text-white nav-icon" title="Raporlar">
+                                    <i class="fas fa-file-alt"></i>
+                                    <span class="nav-icon-badge d-none" id="reportsBadge"></span>
+                                </a>
+                            </div>
                         </div>
                         
-                        <!-- Hatırlatmalar İkonu -->
-                        <div class="nav-icon-container">
-                            <a href="{{ url_for('reminders') }}" class="nav-link text-white nav-icon" title="Hatırlatmalar">
-                                <i class="fas fa-bell"></i>
-                                <span class="nav-icon-badge d-none" id="remindersBadge"></span>
+                        <!-- Kullanıcı Dropdown'u -->
+                        <div class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle text-white d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user me-1"></i> 
+                                <span class="d-none d-md-inline">{{ current_user.username }}</span>
+                                <span class="badge bg-secondary ms-1">{{ current_user.role }}</span>
                             </a>
-                        </div>
-                        
-                        <!-- Raporlar İkonu -->
-                        <div class="nav-icon-container">
-                            <a href="{{ url_for('reports') }}" class="nav-link text-white nav-icon" title="Raporlar">
-                                <i class="fas fa-file-alt"></i>
-                                <span class="nav-icon-badge d-none" id="reportsBadge"></span>
-                            </a>
-                        </div>
-                    </div>
-                    
-                    <!-- Kullanıcı Dropdown'u -->
-                    <div class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle text-white" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-user"></i> {{ current_user.username }}
-                            <span class="badge bg-secondary">{{ current_user.role }}</span>
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('index') }}">Ana Sayfa</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('reminders') }}">Anımsatıcılarım</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('add_reminder') }}">Yeni Anımsatıcı</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('reports') }}">
-                                <i class="fas fa-file-alt"></i> Raporlarım
-                            </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('create_report') }}">
-                                <i class="fas fa-plus"></i> Yeni Rapor
-                            </a></li>
-                            {% if current_user.role in ['admin', 'manager'] %}
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li class="dropdown-header">
+                                    <i class="fas fa-user"></i> {{ current_user.username }}
+                                    <br><small class="text-muted">{{ current_user.role }}</small>
+                                </li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="{{ url_for('create_task') }}">Yeni Görev</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('stats') }}">İstatistikler</a></li>
-                            {% endif %}
-                            {% if current_user.role == 'admin' %}
+                                <li><a class="dropdown-item" href="{{ url_for('index') }}">
+                                    <i class="fas fa-home"></i> Ana Sayfa
+                                </a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('reminders') }}">
+                                    <i class="fas fa-bell"></i> Anımsatıcılarım
+                                </a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('add_reminder') }}">
+                                    <i class="fas fa-plus"></i> Yeni Anımsatıcı
+                                </a></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="{{ url_for('users') }}">Kullanıcı Yönetimi</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('add_user') }}">Yeni Kullanıcı</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('backup_management') }}">Yedek Yönetimi</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('mail_settings') }}">
-                                    <i class="fas fa-envelope"></i> Mail Ayarları
+                                <li><a class="dropdown-item" href="{{ url_for('reports') }}">
+                                    <i class="fas fa-file-alt"></i> Raporlarım
                                 </a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('timezone_settings') }}">
-                                    <i class="fas fa-clock"></i> Timezone Ayarları
+                                <li><a class="dropdown-item" href="{{ url_for('create_report') }}">
+                                    <i class="fas fa-plus"></i> Yeni Rapor
                                 </a></li>
-                            {% endif %}
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('logout') }}">Çıkış</a></li>
-                        </ul>
-                    </div>
-                {% endif %}
+                                {% if current_user.role in ['admin', 'manager'] %}
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('create_task') }}">
+                                        <i class="fas fa-plus"></i> Yeni Görev
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('stats') }}">
+                                        <i class="fas fa-chart-bar"></i> İstatistikler
+                                    </a></li>
+                                {% endif %}
+                                {% if current_user.role == 'admin' %}
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('users') }}">
+                                        <i class="fas fa-users"></i> Kullanıcı Yönetimi
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('add_user') }}">
+                                        <i class="fas fa-user-plus"></i> Yeni Kullanıcı
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('backup_management') }}">
+                                        <i class="fas fa-database"></i> Yedek Yönetimi
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('mail_settings') }}">
+                                        <i class="fas fa-envelope"></i> Mail Ayarları
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('timezone_settings') }}">
+                                        <i class="fas fa-clock"></i> Timezone Ayarları
+                                    </a></li>
+                                {% endif %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}">
+                                    <i class="fas fa-sign-out-alt"></i> Çıkış
+                                </a></li>
+                            </ul>
+                        </div>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </nav>
 
     <!-- Flash Messages -->
-    <div class="container-fluid mt-3">
+    <div class="container-fluid mt-2">
         {% with messages = get_flashed_messages() %}
             {% if messages %}
                 {% for message in messages %}
-                    <div class="alert alert-info alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    <div class="alert alert-info alert-dismissible fade show mb-2" role="alert">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <span class="d-inline d-sm-none">{{ message[:50] }}{% if message|length > 50 %}...{% endif %}</span>
+                        <span class="d-none d-sm-inline">{{ message }}</span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 {% endfor %}
             {% endif %}
@@ -241,7 +501,7 @@
     </div>
 
     <!-- Main Content -->
-    <div class="container-fluid">
+    <div class="container-fluid main-content">
         {% block content %}{% endblock %}
     </div>
 
@@ -399,6 +659,161 @@
     });
     </script>
     {% endif %}
+    
+    <!-- PWA Installation and Service Worker -->
+    <script>
+    // PWA Installation
+    let deferredPrompt;
+    let installButton = null;
+    
+    // Service Worker Registration
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/static/sw.js')
+                .then(registration => {
+                    console.log('SW: Registered successfully', registration.scope);
+                })
+                .catch(error => {
+                    console.log('SW: Registration failed', error);
+                });
+        });
+    }
+    
+    // PWA Install Prompt
+    window.addEventListener('beforeinstallprompt', (e) => {
+        console.log('PWA: Install prompt available');
+        e.preventDefault();
+        deferredPrompt = e;
+        
+        // Show install button
+        showInstallButton();
+    });
+    
+    // PWA Install Success
+    window.addEventListener('appinstalled', (evt) => {
+        console.log('PWA: App installed successfully');
+        hideInstallButton();
+        
+        // Show success message
+        if (typeof $ !== 'undefined') {
+            const toastHtml = `
+                <div class="toast-container position-fixed bottom-0 end-0 p-3">
+                    <div class="toast show" role="alert">
+                        <div class="toast-header">
+                            <i class="fas fa-mobile-alt text-success me-2"></i>
+                            <strong class="me-auto">Helmex Tasks</strong>
+                            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+                        </div>
+                        <div class="toast-body">
+                            Uygulama başarıyla yüklendi! Ana ekrandan erişebilirsiniz.
+                        </div>
+                    </div>
+                </div>
+            `;
+            $('body').append(toastHtml);
+            $('.toast').toast('show');
+        }
+    });
+    
+    // Show Install Button
+    function showInstallButton() {
+        if (!installButton && typeof $ !== 'undefined') {
+            const buttonHtml = `
+                <div id="pwa-install-button" class="position-fixed bottom-0 start-0 m-3" style="z-index: 1050;">
+                    <button type="button" class="btn btn-primary btn-sm shadow-lg" onclick="installPWA()">
+                        <i class="fas fa-download me-1"></i>
+                        <span class="d-none d-sm-inline">Uygulamayı Yükle</span>
+                        <span class="d-inline d-sm-none">Yükle</span>
+                    </button>
+                </div>
+            `;
+            $('body').append(buttonHtml);
+            installButton = document.getElementById('pwa-install-button');
+        }
+    }
+    
+    // Hide Install Button
+    function hideInstallButton() {
+        if (installButton) {
+            installButton.remove();
+            installButton = null;
+        }
+    }
+    
+    // Install PWA
+    function installPWA() {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    console.log('PWA: User accepted install');
+                } else {
+                    console.log('PWA: User dismissed install');
+                }
+                deferredPrompt = null;
+                hideInstallButton();
+            });
+        }
+    }
+    
+    // Mobile App Behavior
+    if (window.matchMedia('(display-mode: standalone)').matches || 
+        window.navigator.standalone === true) {
+        console.log('PWA: Running as installed app');
+        
+        // Add standalone app class
+        document.body.classList.add('pwa-standalone');
+        
+        // Prevent zoom on double tap
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function (event) {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+    }
+    
+    // Offline/Online Status
+    function updateOnlineStatus() {
+        if (navigator.onLine) {
+            console.log('PWA: Online');
+            document.body.classList.remove('offline');
+            document.body.classList.add('online');
+        } else {
+            console.log('PWA: Offline');
+            document.body.classList.remove('online');
+            document.body.classList.add('offline');
+            
+            // Show offline message
+            if (typeof $ !== 'undefined') {
+                const offlineHtml = `
+                    <div class="toast-container position-fixed top-0 start-50 translate-middle-x p-3">
+                        <div class="toast show bg-warning" role="alert">
+                            <div class="toast-body text-center">
+                                <i class="fas fa-wifi text-danger me-2"></i>
+                                Bağlantı kesildi. Çevrimdışı modda çalışıyorsunuz.
+                            </div>
+                        </div>
+                    </div>
+                `;
+                $('body').append(offlineHtml);
+                
+                setTimeout(() => {
+                    $('.toast').toast('hide');
+                }, 3000);
+            }
+        }
+    }
+    
+    // Listen for online/offline events
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+    
+    // Initial status check
+    updateOnlineStatus();
+    </script>
     
     {% block scripts %}{% endblock %}
 </body>

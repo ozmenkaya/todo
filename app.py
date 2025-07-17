@@ -194,6 +194,54 @@ def index():
                          assigned_completed_tasks=assigned_completed_tasks if current_user.role != 'employee' else [],
                          created_completed_tasks=created_completed_tasks if current_user.role != 'employee' else [])
 
+# PWA Routes
+@app.route('/manifest.json')
+def manifest():
+    """PWA Manifest dosyasını serve et"""
+    return send_from_directory('static', 'manifest.json', mimetype='application/manifest+json')
+
+@app.route('/sw.js')
+def service_worker():
+    """Service Worker dosyasını serve et"""
+    return send_from_directory('static', 'sw.js', mimetype='application/javascript')
+
+@app.route('/api/current-time')
+def current_time():
+    """Mevcut timezone'da saati JSON olarak döndür"""
+    try:
+        current_time = get_istanbul_time()
+        config = load_timezone_config()
+        formatted_time = current_time.strftime(config['display_format'])
+        return jsonify({
+            'time': formatted_time,
+            'timezone': config['timezone'],
+            'timestamp': current_time.timestamp()
+        })
+    except Exception as e:
+        print(f"Time API error: {e}")
+        return jsonify({'error': 'Time unavailable'}), 500
+
+@app.route('/offline')
+def offline():
+    """Çevrimdışı sayfası"""
+    return render_template('offline.html')
+
+@app.route('/api/app-info')
+def app_info():
+    """PWA uygulama bilgilerini döndür"""
+    return jsonify({
+        'name': 'Helmex Görev Yönetimi',
+        'version': '1.0.0',
+        'description': 'Şirket içi görev yönetim sistemi',
+        'features': [
+            'Görev oluşturma ve takip',
+            'Hatırlatmalar',
+            'Rapor paylaşımı',
+            'Çevrimdışı çalışma',
+            'Mobil uyumlu tasarım'
+        ]
+    })
+
 # Giriş sayfası
 @app.route('/login', methods=['GET', 'POST'])
 def login():

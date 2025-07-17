@@ -1,0 +1,25 @@
+# Flask Backend Requirements
+# Company Task Management System Backend API
+
+# Core Flask framework
+Flask==3.0.0
+Flask-SQLAlchemy==3.1.1
+Flask-CORS==4.0.0
+
+# Security and authentication
+Werkzeug==3.0.1
+
+# Production WSGI Server
+gunicorn==21.2.0
+
+# Database (SQLite is built-in with Python)
+# For production, you might want to add:
+# psycopg2-binary==2.9.7  # for PostgreSQL
+# PyMySQL==1.1.0          # for MySQL
+
+# Development and debugging (optional)
+python-dotenv==1.0.0
+
+# Logging (built-in with Python)
+# For production logging, you might want to add:
+# gunicorn==21.2.0        # WSGI server for production

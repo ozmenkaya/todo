@@ -1,0 +1,43 @@
+name: company-task-management
+services:
+- name: backend
+  source_dir: /backend
+  github:
+    repo: your-username/your-repo-name
+    branch: main
+  run_command: gunicorn --bind 0.0.0.0:$PORT --workers 2 app:app
+  environment_slug: python
+  instance_count: 1
+  instance_size_slug: basic-xxs
+  envs:
+  - key: FLASK_ENV
+    value: production
+  - key: SECRET_KEY
+    value: your-very-secure-secret-key-change-this
+    type: SECRET
+  - key: DATABASE_URL
+    value: ${db.DATABASE_URL}
+  - key: CORS_ORIGINS
+    value: ${_self.URL}
+
+- name: frontend
+  source_dir: /
+  github:
+    repo: your-username/your-repo-name
+    branch: main
+  build_command: npm run build
+  run_command: npx serve -s dist -l $PORT
+  environment_slug: node-js
+  instance_count: 1
+  instance_size_slug: basic-xxs
+  routes:
+  - path: /
+  envs:
+  - key: VITE_API_BASE_URL
+    value: ${backend.PUBLIC_URL}/api
+
+databases:
+- name: db
+  engine: PG
+  version: "15"
+  size: basic-xxs
