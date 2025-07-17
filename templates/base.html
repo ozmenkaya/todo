@@ -75,6 +75,27 @@
             margin: 0 0.25rem;
         }
         
+        /* Dinamik Add Button */
+        #dynamicAddBtn {
+            background-color: rgba(255,255,255,0.2) !important;
+            border-radius: 50% !important;
+            width: 40px !important;
+            height: 40px !important;
+            transition: all 0.3s ease !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+        
+        #dynamicAddBtn:hover {
+            background-color: rgba(255,255,255,0.3) !important;
+            transform: scale(1.1);
+        }
+        
+        #dynamicAddBtn i {
+            font-size: 1.1rem;
+        }
+        
         /* Mobile Cards */
         .card {
             border-radius: var(--border-radius);
@@ -413,6 +434,17 @@
                         </a>
                     </div>
                     
+                    <!-- Dinamik Yeni Ekle Butonu -->
+                    <div class="me-2">
+                        <a href="#" id="dynamicAddBtn" class="nav-link text-white d-flex align-items-center justify-content-center" 
+                           style="background-color: rgba(255,255,255,0.2); border-radius: 50%; width: 40px; height: 40px; transition: all 0.3s ease;"
+                           onmouseover="this.style.backgroundColor='rgba(255,255,255,0.3)'"
+                           onmouseout="this.style.backgroundColor='rgba(255,255,255,0.2)'"
+                           title="Yeni Ekle">
+                            <i class="fas fa-plus"></i>
+                        </a>
+                    </div>
+                    
                     <!-- Kullanıcı Dropdown'u -->
                     <div class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle text-white d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
@@ -508,6 +540,65 @@
     {% if current_user.is_authenticated %}
     <script>
     $(document).ready(function() {
+        // Dinamik Yeni Ekle Butonu
+        function setupDynamicAddButton() {
+            const addBtn = $('#dynamicAddBtn');
+            const currentPath = window.location.pathname;
+            
+            // Sayfa türüne göre buton ayarları
+            let btnConfig = {
+                url: '#',
+                title: 'Yeni Ekle',
+                icon: 'fa-plus'
+            };
+            
+            // Hangi sayfada olduğumuzu kontrol et
+            if (currentPath === '/' || currentPath.includes('/index') || currentPath.includes('/task')) {
+                // Görevler sayfası
+                btnConfig.url = "{{ url_for('create_task') }}";
+                btnConfig.title = 'Yeni Görev';
+                btnConfig.icon = 'fa-plus';
+            } else if (currentPath.includes('/reminder')) {
+                // Anımsatıcılar sayfası
+                btnConfig.url = "{{ url_for('add_reminder') }}";
+                btnConfig.title = 'Yeni Anımsatıcı';
+                btnConfig.icon = 'fa-plus';
+            } else if (currentPath.includes('/report')) {
+                // Raporlar sayfası
+                btnConfig.url = "{{ url_for('create_report') }}";
+                btnConfig.title = 'Yeni Rapor';
+                btnConfig.icon = 'fa-plus';
+            } else if (currentPath.includes('/user') && '{{ current_user.role }}' === 'admin') {
+                // Kullanıcı yönetimi sayfası (sadece admin)
+                btnConfig.url = "{{ url_for('add_user') }}";
+                btnConfig.title = 'Yeni Kullanıcı';
+                btnConfig.icon = 'fa-user-plus';
+            }
+            
+            // Buton ayarlarını uygula
+            addBtn.attr('href', btnConfig.url);
+            addBtn.attr('title', btnConfig.title);
+            addBtn.find('i').attr('class', 'fas ' + btnConfig.icon);
+            
+            // Admin değilse ve görev oluşturma yetkisi yoksa butonu gizle
+            const userRole = '{{ current_user.role }}';
+            if (currentPath === '/' || currentPath.includes('/index') || currentPath.includes('/task')) {
+                if (userRole === 'employee') {
+                    addBtn.hide();
+                } else {
+                    addBtn.show();
+                }
+            } else {
+                addBtn.show();
+            }
+        }
+        
+        // Sayfa yüklendiğinde ve URL değiştiğinde çalıştır
+        setupDynamicAddButton();
+        
+        // SPA tarzı sayfa değişikliklerinde de çalıştır
+        $(window).on('popstate', setupDynamicAddButton);
+        
         // Navbar ikonları için bildirim sistemi
         function updateNavbarNotifications() {
             // Görevler için bildirim
