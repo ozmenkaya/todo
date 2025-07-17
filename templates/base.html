@@ -48,7 +48,7 @@
         .status-completed { background-color: #d4edda; }
         .status-cancelled { background-color: #f8d7da; }
         
-        /* Mobile-First Navbar */
+        /* Single Row Navbar - No Collapse */
         .navbar {
             padding: 0.5rem 1rem;
             min-height: var(--navbar-height);
@@ -59,11 +59,20 @@
             font-size: 1.2rem;
         }
         
-        /* Mobile Navbar Icons */
-        .main-nav-icons {
-            display: flex;
+        /* Always show navbar items in single row */
+        .navbar-nav {
+            flex-direction: row !important;
             align-items: center;
-            gap: 0.5rem;
+        }
+        
+        .nav-link {
+            padding: 0.5rem 0.75rem !important;
+        }
+        
+        /* Navigation icons in single row */
+        .nav-icon {
+            position: relative;
+            margin: 0 0.25rem;
         }
         
         /* Mobile Cards */
@@ -367,7 +376,7 @@
 </head>
 <body>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
+    <nav class="navbar navbar-expand navbar-dark bg-primary sticky-top">
         <div class="container-fluid">
             <a class="navbar-brand" href="{{ url_for('index') }}">
                 <i class="fas fa-tasks"></i> 
@@ -375,54 +384,42 @@
                 <span class="d-inline d-sm-none">HX</span>
             </a>
             
-            <!-- Mobile Toggle Button -->
-            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <!-- İstanbul Saati - Mobile Hidden -->
-                <div class="navbar-text text-white me-auto d-none d-lg-block">
+            <div class="navbar-nav w-100" id="navbarNav">
+                <!-- İstanbul Saati -->
+                <div class="navbar-text text-white me-auto d-none d-md-block">
                     <i class="fas fa-clock"></i> 
                     <span id="istanbul-time">{{ get_istanbul_time().strftime(get_timezone_config().display_format) }}</span>
                 </div>
                 
-                <div class="navbar-nav ms-auto">
-                    {% if current_user.is_authenticated %}
-                        <!-- Ana Navigasyon İkonları -->
-                        <div class="main-nav-icons me-2 me-lg-4">
-                            <!-- Görevler İkonu -->
-                            <div class="nav-icon-container">
-                                <a href="{{ url_for('index') }}" class="nav-link text-white nav-icon" title="Görevler">
-                                    <i class="fas fa-tasks"></i>
-                                    <span class="nav-icon-badge d-none" id="tasksBadge"></span>
-                                </a>
-                            </div>
-                            
-                            <!-- Hatırlatmalar İkonu -->
-                            <div class="nav-icon-container">
-                                <a href="{{ url_for('reminders') }}" class="nav-link text-white nav-icon" title="Hatırlatmalar">
-                                    <i class="fas fa-bell"></i>
-                                    <span class="nav-icon-badge d-none" id="remindersBadge"></span>
-                                </a>
-                            </div>
-                            
-                            <!-- Raporlar İkonu -->
-                            <div class="nav-icon-container">
-                                <a href="{{ url_for('reports') }}" class="nav-link text-white nav-icon" title="Raporlar">
-                                    <i class="fas fa-file-alt"></i>
-                                    <span class="nav-icon-badge d-none" id="reportsBadge"></span>
-                                </a>
-                            </div>
-                        </div>
+                {% if current_user.is_authenticated %}
+                    <!-- Ana Navigasyon İkonları -->
+                    <div class="d-flex align-items-center me-2">
+                        <!-- Görevler İkonu -->
+                        <a href="{{ url_for('index') }}" class="nav-link text-white nav-icon me-2" title="Görevler">
+                            <i class="fas fa-tasks"></i>
+                            <span class="nav-icon-badge d-none" id="tasksBadge"></span>
+                        </a>
                         
-                        <!-- Kullanıcı Dropdown'u -->
-                        <div class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle text-white d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-user me-1"></i> 
-                                <span class="d-none d-md-inline">{{ current_user.username }}</span>
-                                <span class="badge bg-secondary ms-1">{{ current_user.role }}</span>
-                            </a>
+                        <!-- Hatırlatmalar İkonu -->
+                        <a href="{{ url_for('reminders') }}" class="nav-link text-white nav-icon me-2" title="Hatırlatmalar">
+                            <i class="fas fa-bell"></i>
+                            <span class="nav-icon-badge d-none" id="remindersBadge"></span>
+                        </a>
+                        
+                        <!-- Raporlar İkonu -->
+                        <a href="{{ url_for('reports') }}" class="nav-link text-white nav-icon me-2" title="Raporlar">
+                            <i class="fas fa-file-alt"></i>
+                            <span class="nav-icon-badge d-none" id="reportsBadge"></span>
+                        </a>
+                    </div>
+                    
+                    <!-- Kullanıcı Dropdown'u -->
+                    <div class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle text-white d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user me-1"></i> 
+                            <span class="d-none d-md-inline">{{ current_user.username }}</span>
+                            <span class="badge bg-secondary ms-1">{{ current_user.role }}</span>
+                        </a>
                             <ul class="dropdown-menu dropdown-menu-end">
                                 <li class="dropdown-header">
                                     <i class="fas fa-user"></i> {{ current_user.username }}
@@ -477,9 +474,8 @@
                                     <i class="fas fa-sign-out-alt"></i> Çıkış
                                 </a></li>
                             </ul>
-                        </div>
-                    {% endif %}
-                </div>
+                    </div>
+                {% endif %}
             </div>
         </div>
     </nav>
