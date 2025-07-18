@@ -108,6 +108,12 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
+# Remember cookie ayarları (30 gün)
+from datetime import timedelta
+app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=30)
+app.config['REMEMBER_COOKIE_SECURE'] = False  # Development için False, production'da True
+app.config['REMEMBER_COOKIE_HTTPONLY'] = True
+
 # Timezone-aware date formatting functions
 def format_date_time(dt):
     """DateTime'ı timezone'a göre full format'ta döndürür"""
@@ -248,8 +254,10 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
+        remember = 'remember' in request.form  # "Beni hatırla" checkbox kontrolü
         
         print(f"🔍 Login attempt - Username: {username}")
+        print(f"🔐 Remember me: {remember}")
         
         user = User.query.filter_by(username=username).first()
         
@@ -259,8 +267,8 @@ def login():
             
             if check_password_hash(user.password_hash, password):
                 print(f"✅ Password correct for user: {username}")
-                login_user(user)
-                print(f"✅ User logged in successfully: {username}")
+                login_user(user, remember=remember)
+                print(f"✅ User logged in successfully: {username} | Remember: {remember}")
                 return redirect(url_for('index'))
             else:
                 print(f"❌ Password incorrect for user: {username}")
