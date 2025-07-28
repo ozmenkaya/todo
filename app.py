@@ -1183,6 +1183,31 @@ def delete_task(task_id):
     
     return redirect(url_for('index'))
 
+# Görev tamamlama
+@app.route('/complete_task/<int:task_id>', methods=['POST'])
+@login_required
+def complete_task(task_id):
+    task = Task.query.get_or_404(task_id)
+    
+    # Yetki kontrolü - admin, manager veya görevde atanmış kişi tamamlayabilir
+    if (current_user.role not in ['admin', 'manager'] and 
+        current_user not in task.assignees):
+        flash('Bu görevi tamamlama yetkiniz yok!')
+        return redirect(url_for('index'))
+    
+    try:
+        # Görevi tamamlandı olarak işaretle
+        task.status = 'completed'
+        db.session.commit()
+        
+        flash(f'Görev "{task.title}" tamamlandı olarak işaretlendi!')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Görev tamamlanırken hata oluştu: {str(e)}')
+    
+    return jsonify({'success': True})
+
 # =============================================================================
 # RAPOR SİSTEMİ
 # =============================================================================
