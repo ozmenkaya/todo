@@ -548,6 +548,14 @@
                                                     <a href="{{ url_for('task_detail', task_id=task.id) }}" class="btn btn-sm btn-outline-primary">
                                                         <i class="fas fa-eye"></i>
                                                     </a>
+                                                    <!-- Açıklama düzenleme butonu - sadece görev oluşturan görebilir -->
+                                                    {% if task.created_by == current_user.id %}
+                                                    <button type="button" class="btn btn-sm btn-outline-warning ms-1" 
+                                                            onclick="editTaskDescription({{ task.id }}, '{{ task.description|escape|replace('\n', '\\n')|replace('\r', '') }}')" 
+                                                            title="Açıklamayı Düzenle">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    {% endif %}
                                                     {% if task.status != 'completed' and (current_user.role in ['admin', 'manager'] or current_user in task.assignees) %}
                                                     <button type="button" class="btn btn-sm btn-outline-success ms-1" onclick="completeTask({{ task.id }}, '{{ task.title|escape }}')" title="Tamamlandı İşaretle">
                                                         <i class="fas fa-check"></i>
@@ -941,6 +949,72 @@ function completeTask(taskId, taskTitle) {
             }
         });
     }
+}
+
+// Görev açıklaması düzenleme fonksiyonu
+function editTaskDescription(taskId, currentDescription) {
+    // Modal dialog oluştur
+    const modal = $(`
+        <div class="modal fade" id="editDescriptionModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Görev Açıklamasını Düzenle</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="taskDescription" class="form-label">Açıklama</label>
+                            <textarea class="form-control" id="taskDescription" rows="4" placeholder="Görev açıklamasını yazın...">${currentDescription || ''}</textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                        <button type="button" class="btn btn-primary" onclick="saveTaskDescription(${taskId})">Kaydet</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `);
+    
+    // Modal'ı ekle ve göster
+    $('body').append(modal);
+    $('#editDescriptionModal').modal('show');
+    
+    // Modal kapandığında DOM'dan temizle
+    $('#editDescriptionModal').on('hidden.bs.modal', function () {
+        $(this).remove();
+    });
+}
+
+// Açıklama kaydetme fonksiyonu
+function saveTaskDescription(taskId) {
+    const newDescription = $('#taskDescription').val().trim();
+    
+    // AJAX ile backend'e gönder
+    $.ajax({
+        url: `/edit_task_description/${taskId}`,
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            description: newDescription
+        }),
+        success: function(result) {
+            if (result.success) {
+                // Modal'ı kapat
+                $('#editDescriptionModal').modal('hide');
+                // Başarı mesajı göster
+                alert(result.message);
+                // Sayfayı yenile
+                location.reload();
+            } else {
+                alert(result.message || 'Bir hata oluştu');
+            }
+        },
+        error: function(xhr, status, error) {
+            alert('Açıklama güncellenirken bir hata oluştu. Lütfen tekrar deneyin.');
+        }
+    });
 }
 
 // Görev silme fonksiyonu

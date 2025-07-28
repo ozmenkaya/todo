@@ -1208,6 +1208,33 @@ def complete_task(task_id):
     
     return jsonify({'success': True})
 
+@app.route('/edit_task_description/<int:task_id>', methods=['POST'])
+@login_required
+def edit_task_description(task_id):
+    """Görev açıklamasını düzenle - Sadece görev oluşturan kişi düzenleyebilir"""
+    task = Task.query.get_or_404(task_id)
+    
+    # Yetki kontrolü - sadece görev oluşturan kişi düzenleyebilir
+    if task.created_by != current_user.id:
+        return jsonify({'success': False, 'message': 'Bu görevin açıklamasını düzenleme yetkiniz yok!'})
+    
+    try:
+        new_description = request.json.get('description', '').strip()
+        
+        # Açıklamayı güncelle
+        task.description = new_description
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': f'Görev açıklaması güncellendi!',
+            'new_description': new_description
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Açıklama güncellenirken hata oluştu: {str(e)}'})
+
 # =============================================================================
 # RAPOR SİSTEMİ
 # =============================================================================
