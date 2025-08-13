@@ -501,6 +501,9 @@
                                     </a></li>
                                 {% endif %}
                                 <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#accountModal">
+                                    <i class="fas fa-user-cog"></i> Hesabım
+                                </a></li>
                                 <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}">
                                     <i class="fas fa-sign-out-alt"></i> Çıkış
                                 </a></li>
@@ -534,6 +537,80 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Hesabım Modal -->
+    {% if current_user.is_authenticated %}
+    <div class="modal fade" id="accountModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-user-cog me-2"></i>Hesabım
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h6 class="text-primary mb-3">
+                                <i class="fas fa-info-circle me-2"></i>Hesap Bilgileri
+                            </h6>
+                            <div class="mb-3">
+                                <strong>Kullanıcı Adı:</strong> {{ current_user.username }}
+                            </div>
+                            <div class="mb-3">
+                                <strong>E-posta:</strong> {{ current_user.email }}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Rol:</strong> 
+                                <span class="badge bg-{{ 'danger' if current_user.role == 'admin' else 'warning' if current_user.role == 'manager' else 'info' }}">
+                                    {{ {'admin': 'Yönetici', 'manager': 'Müdür', 'employee': 'Çalışan'}[current_user.role] }}
+                                </span>
+                            </div>
+                            <div class="mb-3">
+                                <strong>Departman:</strong> {{ current_user.department }}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Kayıt Tarihi:</strong> {{ current_user.created_at.strftime('%d.%m.%Y %H:%M') if current_user.created_at else 'Bilinmiyor' }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if current_user.role != 'admin' %}
+                    <div class="mt-4">
+                        <h6 class="text-danger mb-3">
+                            <i class="fas fa-exclamation-triangle me-2"></i>Tehlikeli Alan
+                        </h6>
+                        <div class="alert alert-warning">
+                            <h6><i class="fas fa-warning me-2"></i>Hesap Silme Uyarısı</h6>
+                            <p class="mb-2">Hesabınızı silerseniz:</p>
+                            <ul class="mb-2">
+                                <li>Tüm verileriniz kalıcı olarak silinecek</li>
+                                <li>Bu işlem geri alınamaz</li>
+                                <li>Oluşturduğunuz görevler silinmeyecek</li>
+                                <li>Yeniden giriş yapamazsınız</li>
+                            </ul>
+                            <button type="button" class="btn btn-danger btn-sm" onclick="confirmDeleteAccount()">
+                                <i class="fas fa-trash me-2"></i>Hesabımı Sil
+                            </button>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info mt-4">
+                        <i class="fas fa-shield-alt me-2"></i>
+                        <strong>Yönetici Hesabı:</strong> Güvenlik nedeniyle admin hesabı silinemez.
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>Kapat
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
     
     <!-- Navbar İkon Bildirimleri -->
     {% if current_user.is_authenticated %}
@@ -899,6 +976,35 @@
     
     // Initial status check
     updateOnlineStatus();
+    
+    {% if current_user.is_authenticated and current_user.role != 'admin' %}
+    // Hesap silme fonksiyonu
+    function confirmDeleteAccount() {
+        const username = '{{ current_user.username }}';
+        
+        if (confirm(`UYARI: Bu işlem geri alınamaz!\n\n"${username}" hesabınızı kalıcı olarak silmek istediğinizden emin misiniz?\n\nTüm verileriniz silinecek ve tekrar giriş yapamazsınız.`)) {
+            if (confirm('Son kez soruyoruz: Hesabınızı gerçekten silmek istediğinizden emin misiniz?')) {
+                // Form oluştur ve gönder
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '{{ url_for("delete_account") }}';
+                
+                // CSRF token ekle (eğer varsa)
+                const token = document.querySelector('meta[name="csrf-token"]');
+                if (token) {
+                    const csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = 'csrf_token';
+                    csrfInput.value = token.getAttribute('content');
+                    form.appendChild(csrfInput);
+                }
+                
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+    }
+    {% endif %}
     </script>
     
     {% block scripts %}{% endblock %}

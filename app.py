@@ -286,6 +286,113 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
+# Gizlilik Politikası
+@app.route('/privacy')
+def privacy():
+    """Gizlilik politikası sayfası"""
+    return render_template('privacy.html')
+
+# İletişim
+@app.route('/contact')
+def contact():
+    """İletişim sayfası"""
+    return render_template('contact.html')
+
+# Kayıt Ol
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    """Kullanıcı kayıt sayfası"""
+    if request.method == 'POST':
+        username = request.form['username'].strip()
+        email = request.form['email'].strip()
+        password = request.form['password']
+        password_confirm = request.form['password_confirm']
+        department = request.form['department'].strip()
+        
+        # Validation
+        if not username or not email or not password or not department:
+            flash('Tüm alanlar zorunludur!')
+            return render_template('register.html')
+        
+        if password != password_confirm:
+            flash('Şifreler eşleşmiyor!')
+            return render_template('register.html')
+        
+        if len(password) < 6:
+            flash('Şifre en az 6 karakter olmalıdır!')
+            return render_template('register.html')
+        
+        # Kullanıcı var mı kontrol et
+        if User.query.filter_by(username=username).first():
+            flash('Bu kullanıcı adı zaten kullanılıyor!')
+            return render_template('register.html')
+        
+        if User.query.filter_by(email=email).first():
+            flash('Bu e-posta adresi zaten kullanılıyor!')
+            return render_template('register.html')
+        
+        try:
+            # Yeni kullanıcı oluştur (varsayılan olarak employee)
+            new_user = User(
+                username=username,
+                email=email,
+                password_hash=generate_password_hash(password),
+                role='employee',
+                department=department,
+                created_at=datetime.utcnow()
+            )
+            db.session.add(new_user)
+            db.session.commit()
+            
+            flash('Hesabınız başarıyla oluşturuldu! Giriş yapabilirsiniz.')
+            return redirect(url_for('login'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Hesap oluşturulurken hata oluştu: {str(e)}')
+            return render_template('register.html')
+    
+    return render_template('register.html')
+
+# Hesap Silme
+@app.route('/delete_account', methods=['POST'])
+@login_required
+def delete_account():
+    """Kullanıcının kendi hesabını silmesi"""
+    try:
+        user_id = current_user.id
+        username = current_user.username
+        
+        # Admin hesabı silinemez
+        if current_user.role == 'admin':
+            flash('Admin hesabı silinemez!')
+            return redirect(url_for('index'))
+        
+        # Kullanıcının görevlerini kontrol et
+        user_tasks = Task.query.filter(
+            (Task.created_by == user_id) | 
+            (Task.assignees.any(id=user_id))
+        ).all()
+        
+        if user_tasks:
+            flash('Hesabınızı silmeden önce tüm görevlerinizi tamamlamanız veya başka birine devretmeniz gerekiyor!')
+            return redirect(url_for('index'))
+        
+        # Kullanıcıyı sil
+        db.session.delete(current_user)
+        db.session.commit()
+        
+        # Oturumu kapat
+        logout_user()
+        
+        flash(f'{username} hesabı başarıyla silindi!')
+        return redirect(url_for('login'))
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Hesap silinirken hata oluştu: {str(e)}')
+        return redirect(url_for('index'))
+
 # Yeni görev oluşturma
 @app.route('/create_task', methods=['GET', 'POST'])
 @login_required
