@@ -42,7 +42,7 @@ echo
 
 echo "🎯 DEPLOYMENT SUCCESSFUL! ✅"
 echo "----------------------------"
-echo "🌐 Live URL: https://seashell-app-ji9wm.ondigitalocean.app/"
+echo "🌐 Live URL: https://stingray-app-c9xif.ondigitalocean.app/"
 echo "📊 Status: ✅ DEPLOYED & RUNNING"
 echo "📝 Next Steps:"
 echo "2. To add PostgreSQL: Uncomment database section in .do/app.yaml"
