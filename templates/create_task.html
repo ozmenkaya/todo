@@ -18,7 +18,7 @@
                     
                     <div class="mb-3">
                         <label for="description" class="form-label">Açıklama</label>
-                        <textarea class="form-control" id="description" name="description" rows="4"></textarea>
+                        <textarea class="form-control" id="description" name="description" rows="6"></textarea>
                     </div>
                     
                     <div class="row">
@@ -96,6 +96,26 @@ $(document).ready(function() {
     // Bugünün tarihini minimum tarih olarak ayarla
     const today = new Date().toISOString().split('T')[0];
     $('#due_date').attr('min', today);
+    
+    // Summernote zengin metin editörünü başlat
+    $('#description').summernote({
+        height: 200,
+        toolbar: [
+            ['style', ['style']],
+            ['font', ['bold', 'italic', 'underline', 'clear']],
+            ['fontname', ['fontname']],
+            ['color', ['color']],
+            ['para', ['ul', 'ol', 'paragraph']],
+            ['table', ['table']],
+            ['insert', ['link', 'picture']],
+            ['view', ['fullscreen', 'codeview']],
+            ['help', ['help']]
+        ],
+        placeholder: 'Görev açıklamasını buraya yazın...',
+        tabsize: 2,
+        focus: false,
+        lang: 'tr-TR'
+    });
 });
 </script>
 {% endblock %}

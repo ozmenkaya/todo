@@ -177,7 +177,7 @@
                                                         {% endif %}
                                                         {% if task.description %}
                                                         <br>
-                                                        <small class="text-muted">{{ task.description[:100] }}{% if task.description|length > 100 %}...{% endif %}</small>
+                                                        <small class="text-muted">{{ (task.description|striptags)[:100] }}{% if (task.description|striptags)|length > 100 %}...{% endif %}</small>
                                                         {% endif %}
                                                     </div>
                                                 </td>
@@ -274,7 +274,7 @@
                                                         {% endif %}
                                                         {% if task.description %}
                                                         <br>
-                                                        <small class="text-muted">{{ task.description[:100] }}{% if task.description|length > 100 %}...{% endif %}</small>
+                                                        <small class="text-muted">{{ (task.description|striptags)[:100] }}{% if (task.description|striptags)|length > 100 %}...{% endif %}</small>
                                                         {% endif %}
                                                     </div>
                                                 </td>
@@ -375,7 +375,7 @@
                                                         {% endif %}
                                                         {% if task.description %}
                                                         <br>
-                                                        <small class="text-muted">{{ task.description[:100] }}{% if task.description|length > 100 %}...{% endif %}</small>
+                                                        <small class="text-muted">{{ (task.description|striptags)[:100] }}{% if (task.description|striptags)|length > 100 %}...{% endif %}</small>
                                                         {% endif %}
                                                     </div>
                                                 </td>
@@ -509,7 +509,7 @@
                                                         {% endif %}
                                                         {% if task.description %}
                                                         <br>
-                                                        <small class="text-muted">{{ task.description[:100] }}{% if task.description|length > 100 %}...{% endif %}</small>
+                                                        <small class="text-muted">{{ (task.description|striptags)[:100] }}{% if (task.description|striptags)|length > 100 %}...{% endif %}</small>
                                                         {% endif %}
                                                     </div>
                                                 </td>
@@ -551,7 +551,7 @@
                                                     <!-- Açıklama düzenleme butonu - sadece görev oluşturan görebilir -->
                                                     {% if task.created_by == current_user.id %}
                                                     <button type="button" class="btn btn-sm btn-outline-warning ms-1" 
-                                                            onclick="editTaskDescription({{ task.id }}, '{{ task.description|escape|replace('\n', '\\n')|replace('\r', '') }}')" 
+                                                            onclick="editTaskDescription({{ task.id }})" 
                                                             title="Açıklamayı Düzenle">
                                                         <i class="fas fa-edit"></i>
                                                     </button>
@@ -630,7 +630,7 @@
                                                         {% endif %}
                                                         {% if task.description %}
                                                         <br>
-                                                        <small class="text-muted">{{ task.description[:100] }}{% if task.description|length > 100 %}...{% endif %}</small>
+                                                        <small class="text-muted">{{ (task.description|striptags)[:100] }}{% if (task.description|striptags)|length > 100 %}...{% endif %}</small>
                                                         {% endif %}
                                                     </div>
                                                 </td>
@@ -731,7 +731,7 @@
                                                         {% endif %}
                                                         {% if task.description %}
                                                         <br>
-                                                        <small class="text-muted">{{ task.description[:100] }}{% if task.description|length > 100 %}...{% endif %}</small>
+                                                        <small class="text-muted">{{ (task.description|striptags)[:100] }}{% if (task.description|striptags)|length > 100 %}...{% endif %}</small>
                                                         {% endif %}
                                                     </div>
                                                 </td>
@@ -952,44 +952,79 @@ function completeTask(taskId, taskTitle) {
 }
 
 // Görev açıklaması düzenleme fonksiyonu
-function editTaskDescription(taskId, currentDescription) {
-    // Modal dialog oluştur
-    const modal = $(`
-        <div class="modal fade" id="editDescriptionModal" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Görev Açıklamasını Düzenle</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label for="taskDescription" class="form-label">Açıklama</label>
-                            <textarea class="form-control" id="taskDescription" rows="4" placeholder="Görev açıklamasını yazın...">${currentDescription || ''}</textarea>
+function editTaskDescription(taskId) {
+    // Önce görevin mevcut açıklamasını al
+    $.get(`/get_task_description/${taskId}`)
+        .then(function(response) {
+            const currentDescription = response.description || '';
+            
+            // Modal dialog oluştur
+            const modal = $(`
+                <div class="modal fade" id="editDescriptionModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Görev Açıklamasını Düzenle</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label for="taskDescription" class="form-label">Açıklama</label>
+                                    <textarea class="form-control" id="taskDescription" rows="6" placeholder="Görev açıklamasını yazın..."></textarea>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                                <button type="button" class="btn btn-primary" onclick="saveTaskDescription(${taskId})">Kaydet</button>
+                            </div>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-                        <button type="button" class="btn btn-primary" onclick="saveTaskDescription(${taskId})">Kaydet</button>
-                    </div>
                 </div>
-            </div>
-        </div>
-    `);
-    
-    // Modal'ı ekle ve göster
-    $('body').append(modal);
-    $('#editDescriptionModal').modal('show');
-    
-    // Modal kapandığında DOM'dan temizle
-    $('#editDescriptionModal').on('hidden.bs.modal', function () {
-        $(this).remove();
-    });
+            `);
+            
+            // Modal'ı ekle ve göster
+            $('body').append(modal);
+            $('#editDescriptionModal').modal('show');
+            
+            // Summernote'u başlat
+            $('#taskDescription').summernote({
+                height: 250,
+                toolbar: [
+                    ['style', ['style']],
+                    ['font', ['bold', 'italic', 'underline', 'clear']],
+                    ['fontname', ['fontname']],
+                    ['color', ['color']],
+                    ['para', ['ul', 'ol', 'paragraph']],
+                    ['table', ['table']],
+                    ['insert', ['link', 'picture']],
+                    ['view', ['fullscreen', 'codeview']],
+                    ['help', ['help']]
+                ],
+                placeholder: 'Görev açıklamasını buraya yazın...',
+                tabsize: 2,
+                focus: true,
+                lang: 'tr-TR'
+            });
+            
+            // Mevcut açıklamayı Summernote'a yükle
+            $('#taskDescription').summernote('code', currentDescription);
+            
+            // Modal kapandığında DOM'dan temizle ve Summernote'u yok et
+            $('#editDescriptionModal').on('hidden.bs.modal', function () {
+                $('#taskDescription').summernote('destroy');
+                $(this).remove();
+            });
+        })
+        .catch(function(error) {
+            console.error('Açıklama yüklenirken hata:', error);
+            alert('Açıklama yüklenirken bir hata oluştu.');
+        });
 }
 
 // Açıklama kaydetme fonksiyonu
 function saveTaskDescription(taskId) {
-    const newDescription = $('#taskDescription').val().trim();
+    // Summernote'dan HTML içeriği al
+    const newDescription = $('#taskDescription').summernote('code').trim();
     
     // AJAX ile backend'e gönder
     $.ajax({

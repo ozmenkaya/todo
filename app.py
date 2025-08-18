@@ -1315,6 +1315,21 @@ def complete_task(task_id):
     
     return jsonify({'success': True})
 
+@app.route('/get_task_description/<int:task_id>', methods=['GET'])
+@login_required
+def get_task_description(task_id):
+    """Görev açıklamasını getir - Sadece görev oluşturan kişi görebilir"""
+    task = Task.query.get_or_404(task_id)
+    
+    # Yetki kontrolü - sadece görev oluşturan kişi görebilir
+    if task.created_by != current_user.id:
+        return jsonify({'success': False, 'message': 'Bu görevin açıklamasını görme yetkiniz yok!'})
+    
+    return jsonify({
+        'success': True,
+        'description': task.description or ''
+    })
+
 @app.route('/edit_task_description/<int:task_id>', methods=['POST'])
 @login_required
 def edit_task_description(task_id):

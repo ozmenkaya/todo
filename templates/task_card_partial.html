@@ -25,8 +25,8 @@
         </div>
         <div class="card-body p-2 p-sm-3">
             <p class="card-text small mb-3">
-                <span class="d-none d-sm-inline">{{ task.description[:80] }}{% if task.description|length > 80 %}...{% endif %}</span>
-                <span class="d-inline d-sm-none">{{ task.description[:40] }}{% if task.description|length > 40 %}...{% endif %}</span>
+                <span class="d-none d-sm-inline">{{ (task.description|striptags)[:80] }}{% if (task.description|striptags)|length > 80 %}...{% endif %}</span>
+                <span class="d-inline d-sm-none">{{ (task.description|striptags)[:40] }}{% if (task.description|striptags)|length > 40 %}...{% endif %}</span>
             </p>
             
             <div class="row g-1 g-sm-2">
