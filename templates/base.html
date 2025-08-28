@@ -545,6 +545,128 @@
     <!-- Summernote JS -->
     <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-bs5.min.js"></script>
     
+    <!-- Custom Checkbox Plugin for Summernote -->
+    <script>
+    (function($) {
+        // Custom checkbox button for Summernote
+        var CheckboxButton = function(context) {
+            var ui = $.summernote.ui;
+            var button = ui.button({
+                contents: '<i class="far fa-square"></i>',
+                tooltip: 'Checkbox Ekle',
+                click: function() {
+                    // Insert checkbox
+                    var checkbox = '<label class="task-checkbox"><input type="checkbox" onchange="toggleTaskItem(this)"> <span class="checkbox-text">Görev maddesi yazın...</span></label><br>';
+                    context.invoke('editor.pasteHTML', checkbox);
+                }
+            });
+            return button.render();
+        };
+        
+        // Register the button
+        $.extend($.summernote.plugins, {
+            'checkbox': function(context) {
+                context.memo('button.checkbox', function() {
+                    return CheckboxButton(context);
+                });
+            }
+        });
+    })(jQuery);
+    
+    // Toggle task item function
+    function toggleTaskItem(checkbox) {
+        var textSpan = checkbox.nextElementSibling;
+        if (checkbox.checked) {
+            textSpan.style.textDecoration = 'line-through';
+            textSpan.style.opacity = '0.6';
+            textSpan.style.color = '#6c757d';
+        } else {
+            textSpan.style.textDecoration = 'none';
+            textSpan.style.opacity = '1';
+            textSpan.style.color = 'inherit';
+        }
+        
+        // Save checkbox state to server if we're in task detail view
+        if (typeof saveCheckboxState === 'function') {
+            var taskId = document.querySelector('[data-task-id]')?.getAttribute('data-task-id');
+            if (taskId) {
+                saveCheckboxState(taskId);
+            }
+        }
+    }
+    </script>
+    
+    <!-- Checkbox Styles -->
+    <style>
+    .task-checkbox {
+        display: flex;
+        align-items: flex-start;
+        margin: 8px 0;
+        cursor: pointer;
+        user-select: none;
+    }
+    
+    .task-checkbox input[type="checkbox"] {
+        margin-right: 8px;
+        margin-top: 3px;
+        transform: scale(1.1);
+        cursor: pointer;
+    }
+    
+    .checkbox-text {
+        flex: 1;
+        line-height: 1.4;
+        word-wrap: break-word;
+        cursor: text;
+    }
+    
+    .checkbox-text:focus {
+        outline: 1px solid #0d6efd;
+        outline-offset: 2px;
+        border-radius: 3px;
+    }
+    
+    /* Completed task styling */
+    .task-checkbox input[type="checkbox"]:checked + .checkbox-text {
+        text-decoration: line-through;
+        opacity: 0.6;
+        color: #6c757d;
+    }
+    
+    /* Custom checkbox styling */
+    .task-checkbox input[type="checkbox"] {
+        appearance: none;
+        width: 18px;
+        height: 18px;
+        border: 2px solid #dee2e6;
+        border-radius: 3px;
+        background: white;
+        cursor: pointer;
+        position: relative;
+        transition: all 0.2s ease;
+    }
+    
+    .task-checkbox input[type="checkbox"]:checked {
+        background: #198754;
+        border-color: #198754;
+    }
+    
+    .task-checkbox input[type="checkbox"]:checked::after {
+        content: '✓';
+        position: absolute;
+        top: -2px;
+        left: 2px;
+        color: white;
+        font-size: 14px;
+        font-weight: bold;
+    }
+    
+    .task-checkbox input[type="checkbox"]:hover {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
+    }
+    </style>
+    
     <!-- Hesabım Modal -->
     {% if current_user.is_authenticated %}
     <div class="modal fade" id="accountModal" tabindex="-1">

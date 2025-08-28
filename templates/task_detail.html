@@ -6,7 +6,7 @@
 <div class="row">
     <div class="col-md-8">
         <!-- Görev Detayları -->
-        <div class="card">
+        <div class="card" data-task-id="{{ task.id }}">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h4>{{ task.title }}</h4>
                 <span class="badge bg-{{ 'danger' if task.priority == 'urgent' else 'warning' if task.priority == 'high' else 'primary' if task.priority == 'medium' else 'secondary' }} fs-6">
@@ -239,6 +239,69 @@ $(document).ready(function() {
     });
 });
 
+// Checkbox state kaydetme fonksiyonu
+function saveCheckboxState(taskId) {
+    try {
+        // Mevcut açıklama HTML'ini al
+        const descriptionElement = document.querySelector('.bg-light.rounded');
+        if (!descriptionElement) return;
+        
+        const updatedDescription = descriptionElement.innerHTML;
+        
+        // Server'a kaydet
+        fetch(`/save_checkbox_state/${taskId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                description: updatedDescription
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log('✅ Checkbox durumu kaydedildi:', data.updated_by);
+                // Opsiyonel: Küçük bir başarı göstergesi
+                showBriefNotification('✓ Kaydedildi');
+            } else {
+                console.error('❌ Kaydetme hatası:', data.message);
+                showBriefNotification('❌ Kayıt hatası');
+            }
+        })
+        .catch(error => {
+            console.error('❌ Checkbox kaydetme hatası:', error);
+            showBriefNotification('❌ Bağlantı hatası');
+        });
+    } catch (error) {
+        console.error('❌ Checkbox state kaydetme hatası:', error);
+    }
+}
+
+// Kısa bildirim gösterici
+function showBriefNotification(message) {
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: rgba(0,0,0,0.8);
+        color: white;
+        padding: 10px 15px;
+        border-radius: 5px;
+        z-index: 9999;
+        font-size: 14px;
+        transition: opacity 0.3s ease;
+    `;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        setTimeout(() => notification.remove(), 300);
+    }, 1500);
+}
+
 // Görev silme onayı
 function confirmDelete(taskId, taskTitle) {
     if (confirm(`"${taskTitle}" görevini silmek istediğinizden emin misiniz?\n\nBu işlem geri alınamaz!`)) {
@@ -250,5 +313,44 @@ function confirmDelete(taskId, taskTitle) {
         form.submit();
     }
 }
+
+// Sayfa yüklendiğinde checkbox'ları dinle
+document.addEventListener('DOMContentLoaded', function() {
+    const taskId = document.querySelector('[data-task-id]')?.getAttribute('data-task-id');
+    
+    // Mevcut checkbox'ları dinle
+    document.addEventListener('change', function(e) {
+        if (e.target.type === 'checkbox' && e.target.closest('.task-checkbox')) {
+            // Checkbox değiştiğinde state'i kaydet
+            setTimeout(() => saveCheckboxState(taskId), 100);
+        }
+    });
+    
+    // Checkbox text'ler için tıklama olayları
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('checkbox-text')) {
+            e.target.contentEditable = 'true';
+            e.target.focus();
+            
+            // Text seçimi
+            if (window.getSelection && document.createRange) {
+                const range = document.createRange();
+                range.selectNodeContents(e.target);
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(range);
+            }
+        }
+    });
+    
+    // Blur olayında düzenlemeyi sonlandır
+    document.addEventListener('blur', function(e) {
+        if (e.target.classList.contains('checkbox-text')) {
+            e.target.contentEditable = 'false';
+            // Text değiştiğinde kaydet
+            setTimeout(() => saveCheckboxState(taskId), 100);
+        }
+    }, true);
+});
 </script>
 {% endblock %}

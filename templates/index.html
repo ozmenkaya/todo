@@ -995,15 +995,43 @@ function editTaskDescription(taskId) {
                     ['fontname', ['fontname']],
                     ['color', ['color']],
                     ['para', ['ul', 'ol', 'paragraph']],
+                    ['custom', ['checkbox']],  // Checkbox button eklendi
                     ['table', ['table']],
                     ['insert', ['link', 'picture']],
                     ['view', ['fullscreen', 'codeview']],
                     ['help', ['help']]
                 ],
-                placeholder: 'Görev açıklamasını buraya yazın...',
+                placeholder: 'Görev açıklamasını buraya yazın...\n\nCheckbox eklemek için toolbar\'daki □ butonunu kullanın.',
                 tabsize: 2,
                 focus: true,
-                lang: 'tr-TR'
+                lang: 'tr-TR',
+                callbacks: {
+                    onInit: function() {
+                        // Make checkbox texts editable
+                        this.editableElement = this.note.editable[0];
+                        $(this.editableElement).on('click', '.checkbox-text', function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            
+                            // Make text editable
+                            $(this).attr('contenteditable', 'true').focus();
+                            
+                            // Select all text
+                            if (window.getSelection && document.createRange) {
+                                const range = document.createRange();
+                                range.selectNodeContents(this);
+                                const selection = window.getSelection();
+                                selection.removeAllRanges();
+                                selection.addRange(range);
+                            }
+                        });
+                        
+                        // Handle blur to save changes
+                        $(this.editableElement).on('blur', '.checkbox-text', function() {
+                            $(this).removeAttr('contenteditable');
+                        });
+                    }
+                }
             });
             
             // Mevcut açıklamayı Summernote'a yükle

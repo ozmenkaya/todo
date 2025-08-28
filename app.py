@@ -1406,6 +1406,35 @@ def edit_task_description(task_id):
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Açıklama güncellenirken hata oluştu: {str(e)}'})
 
+@app.route('/save_checkbox_state/<int:task_id>', methods=['POST'])
+@login_required
+def save_checkbox_state(task_id):
+    """Checkbox durumlarını kaydet - Atanan kişiler ve görev oluşturan erişebilir"""
+    task = Task.query.get_or_404(task_id)
+    
+    # Yetki kontrolü - görev oluşturan veya atanan kişiler erişebilir
+    if (task.created_by != current_user.id and 
+        current_user not in task.assignees):
+        return jsonify({'success': False, 'message': 'Bu görevin checkbox durumlarını değiştirme yetkiniz yok!'})
+    
+    try:
+        # Frontend'den gelen HTML'i al
+        updated_description = request.json.get('description', '').strip()
+        
+        # Açıklamayı güncelle (checkbox durumları ile birlikte)
+        task.description = updated_description
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Checkbox durumları kaydedildi!',
+            'updated_by': current_user.username
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Checkbox durumları kaydedilemedi: {str(e)}'})
+
 # =============================================================================
 # RAPOR SİSTEMİ
 # =============================================================================
