@@ -5,6 +5,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 import os
 import pytz
+import gc
+import weakref
+from functools import lru_cache
 
 # Models import
 from models import db, User, Task, Comment, Reminder, Report, ReportComment, task_assignments, report_shares
@@ -71,13 +74,14 @@ if database_url:
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     
-    # Production PostgreSQL ayarları
+    # Production PostgreSQL ayarları - RAM optimizasyonu
     if os.environ.get('FLASK_ENV') == 'production':
         app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
             'pool_pre_ping': True,
-            'pool_recycle': 300,
-            'pool_timeout': 20,
-            'max_overflow': 0,
+            'pool_recycle': 180,  # 3 dakika (300'den 180'e düştü)
+            'pool_timeout': 10,   # 20'den 10'a düştü
+            'max_overflow': 0,    # Overflow yok
+            'pool_size': 3,       # Maximum 3 connection (default 5'ten düştü)
         }
 else:
     # SQLite fallback (development veya PostgreSQL henüz hazır değilse)
@@ -145,6 +149,48 @@ app.jinja_env.filters['istanbul_time'] = utc_to_istanbul
 app.jinja_env.filters['format_datetime'] = format_date_time
 app.jinja_env.filters['format_date'] = format_date_only
 app.jinja_env.filters['format_time'] = format_time_only
+
+# Memory management ve cleanup handlers
+@app.after_request
+def after_request_cleanup(response):
+    """Her request sonrası memory cleanup"""
+    try:
+        # Database session'ları temizle
+        db.session.remove()
+        
+        # Garbage collection'ı tetikle (her 10 request'te bir)
+        if hasattr(after_request_cleanup, 'counter'):
+            after_request_cleanup.counter += 1
+        else:
+            after_request_cleanup.counter = 1
+            
+        if after_request_cleanup.counter % 10 == 0:
+            gc.collect()
+            after_request_cleanup.counter = 0
+            
+    except Exception as e:
+        print(f"⚠️ Cleanup error: {e}")
+    
+    return response
+
+@app.teardown_appcontext
+def shutdown_session(exception=None):
+    """Application context bitiminde session cleanup"""
+    try:
+        db.session.remove()
+    except Exception as e:
+        print(f"⚠️ Session cleanup error: {e}")
+
+# Cache for frequently accessed data
+@lru_cache(maxsize=32)
+def get_user_by_id_cached(user_id):
+    """User'ı cache ile getir"""
+    return User.query.get(user_id)
+
+@lru_cache(maxsize=16)  
+def get_department_users_cached(department):
+    """Department user'larını cache ile getir"""
+    return User.query.filter_by(department=department).all()
 app.jinja_env.globals['get_istanbul_time'] = get_istanbul_time
 app.jinja_env.globals['get_timezone_config'] = load_timezone_config
 app.jinja_env.globals['moment'] = type('obj', (object,), {
@@ -160,35 +206,38 @@ def load_user(user_id):
 @app.route('/')
 @login_required
 def index():
+    # Memory optimization: Limit queries to reduce RAM usage
+    TASK_LIMIT = 50  # Her kategori için maksimum 50 görev
+    
     if current_user.role == 'admin':
-        # Admin tüm görevleri görebilir
-        tasks = Task.query.filter(Task.status != 'completed').order_by(Task.created_at.desc()).all()
-        completed_tasks = Task.query.filter_by(status='completed').order_by(Task.updated_at.desc()).all()
-        assigned_tasks = current_user.assigned_tasks.filter(Task.status != 'completed').order_by(Task.created_at.desc()).all()
-        assigned_completed_tasks = current_user.assigned_tasks.filter_by(status='completed').order_by(Task.updated_at.desc()).all()
-        created_tasks = Task.query.filter(Task.created_by == current_user.id, Task.status != 'completed').order_by(Task.created_at.desc()).all()
-        created_completed_tasks = Task.query.filter(Task.created_by == current_user.id, Task.status == 'completed').order_by(Task.updated_at.desc()).all()
+        # Admin tüm görevleri görebilir - limit ile
+        tasks = Task.query.filter(Task.status != 'completed').order_by(Task.created_at.desc()).limit(TASK_LIMIT).all()
+        completed_tasks = Task.query.filter_by(status='completed').order_by(Task.updated_at.desc()).limit(TASK_LIMIT).all()
+        assigned_tasks = current_user.assigned_tasks.filter(Task.status != 'completed').order_by(Task.created_at.desc()).limit(TASK_LIMIT).all()
+        assigned_completed_tasks = current_user.assigned_tasks.filter_by(status='completed').order_by(Task.updated_at.desc()).limit(TASK_LIMIT).all()
+        created_tasks = Task.query.filter(Task.created_by == current_user.id, Task.status != 'completed').order_by(Task.created_at.desc()).limit(TASK_LIMIT).all()
+        created_completed_tasks = Task.query.filter(Task.created_by == current_user.id, Task.status == 'completed').order_by(Task.updated_at.desc()).limit(TASK_LIMIT).all()
     elif current_user.role == 'manager':
-        # Manager kendi departmanındaki görevleri görebilir
-        dept_users = User.query.filter_by(department=current_user.department).all()
+        # Manager kendi departmanındaki görevleri görebilir - limit ile - cache kullanılarak optimize edildi
+        dept_users = get_department_users_cached(current_user.department)
         user_ids = [user.id for user in dept_users]
         # Departmandaki kullanıcılara atanan aktif görevleri bul
-        tasks = Task.query.join(task_assignments).join(User).filter(User.id.in_(user_ids), Task.status != 'completed').order_by(Task.created_at.desc()).all()
+        tasks = Task.query.join(task_assignments).join(User).filter(User.id.in_(user_ids), Task.status != 'completed').order_by(Task.created_at.desc()).limit(TASK_LIMIT).all()
         # Departmandaki tamamlanan görevler
-        completed_tasks = Task.query.join(task_assignments).join(User).filter(User.id.in_(user_ids), Task.status == 'completed').order_by(Task.updated_at.desc()).all()
+        completed_tasks = Task.query.join(task_assignments).join(User).filter(User.id.in_(user_ids), Task.status == 'completed').order_by(Task.updated_at.desc()).limit(TASK_LIMIT).all()
         # Manager'ın atadığı aktif görevler
-        created_tasks = Task.query.filter(Task.created_by == current_user.id, Task.status != 'completed').order_by(Task.created_at.desc()).all()
-        created_completed_tasks = Task.query.filter(Task.created_by == current_user.id, Task.status == 'completed').order_by(Task.updated_at.desc()).all()
+        created_tasks = Task.query.filter(Task.created_by == current_user.id, Task.status != 'completed').order_by(Task.created_at.desc()).limit(TASK_LIMIT).all()
+        created_completed_tasks = Task.query.filter(Task.created_by == current_user.id, Task.status == 'completed').order_by(Task.updated_at.desc()).limit(TASK_LIMIT).all()
         # Manager'a atanan aktif görevler
-        assigned_tasks = current_user.assigned_tasks.filter(Task.status != 'completed').order_by(Task.created_at.desc()).all()
-        assigned_completed_tasks = current_user.assigned_tasks.filter_by(status='completed').order_by(Task.updated_at.desc()).all()
+        assigned_tasks = current_user.assigned_tasks.filter(Task.status != 'completed').order_by(Task.created_at.desc()).limit(TASK_LIMIT).all()
+        assigned_completed_tasks = current_user.assigned_tasks.filter_by(status='completed').order_by(Task.updated_at.desc()).limit(TASK_LIMIT).all()
     else:
-        # Employee sadece kendine atanan görevleri görebilir
-        assigned_tasks = current_user.assigned_tasks.filter(Task.status != 'completed').order_by(Task.created_at.desc()).all()
-        assigned_completed_tasks = current_user.assigned_tasks.filter_by(status='completed').order_by(Task.updated_at.desc()).all()
+        # Employee sadece kendine atanan görevleri görebilir - limit ile
+        assigned_tasks = current_user.assigned_tasks.filter(Task.status != 'completed').order_by(Task.created_at.desc()).limit(TASK_LIMIT).all()
+        assigned_completed_tasks = current_user.assigned_tasks.filter_by(status='completed').order_by(Task.updated_at.desc()).limit(TASK_LIMIT).all()
         # Employee'nin oluşturduğu görevler (eğer varsa)
-        created_tasks = Task.query.filter(Task.created_by == current_user.id, Task.status != 'completed').order_by(Task.created_at.desc()).all()
-        created_completed_tasks = Task.query.filter(Task.created_by == current_user.id, Task.status == 'completed').order_by(Task.updated_at.desc()).all()
+        created_tasks = Task.query.filter(Task.created_by == current_user.id, Task.status != 'completed').order_by(Task.created_at.desc()).limit(TASK_LIMIT).all()
+        created_completed_tasks = Task.query.filter(Task.created_by == current_user.id, Task.status == 'completed').order_by(Task.updated_at.desc()).limit(TASK_LIMIT).all()
         tasks = assigned_tasks
         completed_tasks = assigned_completed_tasks
     
@@ -1670,40 +1719,49 @@ def delete_report(report_id):
 @app.route('/api/tasks_notifications')
 @login_required
 def api_tasks_notifications():
-    """Görevler için bildirim sayısını döndürür"""
-    today = datetime.now().date()
-    
-    # Gecikmiş görevler
-    overdue_tasks = Task.query.filter(
-        Task.assigned_to == current_user.id,
-        Task.due_date < today,
-        Task.status != 'completed'
-    ).count()
-    
-    # Bugün için acil görevler
-    today_urgent_tasks = Task.query.filter(
-        Task.assigned_to == current_user.id,
-        Task.due_date == today,
-        Task.priority == 'urgent',
-        Task.status != 'completed'
-    ).count()
-    
-    # Yeni atanmış görevler (son 24 saat)
-    yesterday = datetime.now() - timedelta(days=1)
-    new_tasks = Task.query.filter(
-        Task.assigned_to == current_user.id,
-        Task.created_at >= yesterday,
-        Task.status == 'pending'
-    ).count()
-    
-    total_notifications = overdue_tasks + today_urgent_tasks + new_tasks
-    
-    return jsonify({
-        'count': total_notifications,
-        'overdue': overdue_tasks,
-        'urgent_today': today_urgent_tasks,
-        'new_tasks': new_tasks
-    })
+    """Görevler için bildirim sayısını döndürür - Optimize edilmiş version"""
+    try:
+        today = datetime.now().date()
+        yesterday = datetime.now() - timedelta(days=1)
+        
+        # Memory optimization: User'ın assigned_tasks ile tek query'de al
+        user_tasks = current_user.assigned_tasks.filter(Task.status != 'completed').all()
+        
+        # In-memory filtering (database query yerine)
+        overdue_count = 0
+        today_urgent_count = 0
+        new_tasks_count = 0
+        
+        for task in user_tasks:
+            # Gecikmiş görevler
+            if task.due_date and task.due_date < today:
+                overdue_count += 1
+            
+            # Bugün için acil görevler  
+            elif task.due_date == today and task.priority == 'urgent':
+                today_urgent_count += 1
+                
+            # Yeni atanmış görevler (son 24 saat)
+            elif task.created_at >= yesterday and task.status == 'pending':
+                new_tasks_count += 1
+        
+        total_notifications = overdue_count + today_urgent_count + new_tasks_count
+        
+        return jsonify({
+            'total': total_notifications,
+            'overdue': overdue_count,
+            'today_urgent': today_urgent_count,
+            'new_tasks': new_tasks_count
+        })
+        
+    except Exception as e:
+        print(f"⚠️ Notification API error: {e}")
+        return jsonify({
+            'total': 0,
+            'overdue': 0,
+            'today_urgent': 0,
+            'new_tasks': 0
+        })
 
 @app.route('/api/reports_notifications')
 @login_required
@@ -1743,6 +1801,19 @@ if __name__ == '__main__':
     import os
     import time
     import sys
+    
+    # Memory usage monitoring  
+    def print_memory_usage():
+        """Memory kullanımını yazdır"""
+        try:
+            import psutil
+            process = psutil.Process()
+            memory_mb = process.memory_info().rss / 1024 / 1024
+            print(f"🧠 Memory usage: {memory_mb:.1f} MB")
+        except ImportError:
+            print("📊 psutil not available for memory monitoring")
+    
+    print_memory_usage()
     
     # Database bağlantısını retry ile dene
     max_retries = 5
@@ -1787,4 +1858,5 @@ if __name__ == '__main__':
     debug = os.environ.get('FLASK_ENV') != 'production'
     
     print(f"🚀 Flask app başlatılıyor - Port: {port}, Debug: {debug}")
+    print_memory_usage()  # Memory kullanımını başlangıçta da göster
     app.run(debug=debug, host='0.0.0.0', port=port)
