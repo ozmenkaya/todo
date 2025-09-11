@@ -10,7 +10,7 @@ import weakref
 from functools import lru_cache
 
 # Models import
-from models import db, User, Task, Comment, Reminder, Report, ReportComment, task_assignments, report_shares
+from models import db, User, Task, Comment, Reminder, Report, ReportComment, task_assignments, report_shares, report_reads
 
 # Mail konfigürasyonu için kalıcı saklama
 from mail_config import save_mail_config, load_mail_config, apply_mail_config_to_app
@@ -1732,6 +1732,11 @@ def delete_report(report_id):
         return redirect(url_for('report_detail', report_id=report_id))
     
     try:
+        # İlişkili kayıtları temizle: yorumlar, paylaşımlar, okuma kayıtları
+        db.session.query(ReportComment).filter_by(report_id=report_id).delete()
+        db.session.execute(report_shares.delete().where(report_shares.c.report_id == report_id))
+        db.session.execute(report_reads.delete().where(report_reads.c.report_id == report_id))
+
         # Raporu sil
         db.session.delete(report)
         db.session.commit()

@@ -108,7 +108,11 @@ class Comment(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     
     # İlişkiler
-    task = db.relationship('Task', backref='comments')
+    # Görev silindiğinde yorumları da sil (ORM seviyesinde)
+    task = db.relationship(
+        'Task',
+        backref=db.backref('comments', cascade='all, delete-orphan')
+    )
     user = db.relationship('User', backref='comments')
 
 class Reminder(db.Model):
@@ -185,5 +189,9 @@ class ReportComment(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     
     # İlişkiler
-    report = db.relationship('Report', backref='comments')
+    # Rapor silindiğinde yorumları da sil (ORM seviyesinde)
+    report = db.relationship(
+        'Report',
+        backref=db.backref('comments', cascade='all, delete-orphan')
+    )
     user = db.relationship('User', backref='report_comments')
