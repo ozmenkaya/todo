@@ -8,6 +8,8 @@ import pytz
 import gc
 import weakref
 from functools import lru_cache
+import json
+import requests
 
 # Models import
 from models import db, User, Task, Comment, Reminder, Report, ReportComment, task_assignments, report_shares, report_reads
@@ -63,6 +65,14 @@ def istanbul_to_utc(istanbul_dt):
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here-change-in-production')
+
+# Expose OneSignal config to all templates
+@app.context_processor
+def inject_onesignal_config():
+    return {
+        'ONESIGNAL_APP_ID': os.environ.get('ONESIGNAL_APP_ID', ''),
+        'ONESIGNAL_ALLOW_LOCALHOST': os.environ.get('ONESIGNAL_ALLOW_LOCALHOST', 'false')
+    }
 
 # Database configuration - PostgreSQL for production, SQLite for development
 database_url = os.environ.get('DATABASE_URL')
@@ -260,6 +270,15 @@ def service_worker():
     """Service Worker dosyasını serve et"""
     return send_from_directory('static', 'sw.js', mimetype='application/javascript')
 
+# OneSignal SDK worker dosyalarını kökten serve et (OneSignal gereksinimi)
+@app.route('/OneSignalSDKWorker.js')
+def onesignal_sdk_worker():
+    return send_from_directory('static', 'OneSignalSDKWorker.js', mimetype='application/javascript')
+
+@app.route('/OneSignalSDKUpdaterWorker.js')
+def onesignal_sdk_updater_worker():
+    return send_from_directory('static', 'OneSignalSDKUpdaterWorker.js', mimetype='application/javascript')
+
 @app.route('/api/current-time')
 def current_time():
     """Mevcut timezone'da saati JSON olarak döndür"""
@@ -296,6 +315,50 @@ def app_info():
             'Mobil uyumlu tasarım'
         ]
     })
+
+# ---------------- OneSignal backend helper ----------------
+def send_onesignal_notification(headings: dict, contents: dict, filters: list | None = None, include_aliases: dict | None = None):
+    app_id = os.environ.get('ONESIGNAL_APP_ID')
+    rest_api_key = os.environ.get('ONESIGNAL_REST_API_KEY')
+    if not app_id or not rest_api_key:
+        return False, 'OneSignal config missing'
+
+    payload = {
+        'app_id': app_id,
+        'headings': headings,
+        'contents': contents
+    }
+    if filters:
+        payload['filters'] = filters
+    if include_aliases:
+        payload['include_aliases'] = include_aliases
+
+    try:
+        resp = requests.post(
+            'https://api.onesignal.com/notifications',
+            headers={
+                'Authorization': f'Basic {rest_api_key}',
+                'Content-Type': 'application/json'
+            },
+            data=json.dumps(payload),
+            timeout=10
+        )
+        ok = 200 <= resp.status_code < 300
+        return ok, (resp.json() if ok else resp.text)
+    except Exception as e:
+        return False, str(e)
+
+@app.route('/admin/test_push', methods=['POST'])
+@login_required
+def admin_test_push():
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    ok, data = send_onesignal_notification(
+        headings={"en": "Helmex"},
+        contents={"en": "Test notification"},
+        include_aliases={"username": [current_user.username]}
+    )
+    return jsonify({'ok': ok, 'data': data}), (200 if ok else 500)
 
 # Giriş sayfası
 @app.route('/login', methods=['GET', 'POST'])

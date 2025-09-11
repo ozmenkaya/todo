@@ -1137,5 +1137,31 @@
     </script>
     
     {% block scripts %}{% endblock %}
+            <!-- OneSignal Web SDK -->
+            {% if ONESIGNAL_APP_ID %}
+            <script src="https://cdn.onesignal.com/sdks/OneSignalSDK.page.js" async></script>
+            <script>
+                window.OneSignalDeferred = window.OneSignalDeferred || [];
+                OneSignalDeferred.push(async function(OneSignal) {
+                    try {
+                        const allowLocalhost = "{{ ONESIGNAL_ALLOW_LOCALHOST | default('false') }}".toLowerCase() === "true";
+                        await OneSignal.init({
+                            appId: "{{ ONESIGNAL_APP_ID }}",
+                            allowLocalhostAsSecureOrigin: allowLocalhost,
+                            serviceWorkerParam: { scope: '/' },
+                            serviceWorkerPath: '/OneSignalSDKWorker.js',
+                            serviceWorkerUpdaterPath: '/OneSignalSDKUpdaterWorker.js'
+                        });
+                                      const isAuthenticated = "{{ 'true' if current_user.is_authenticated else 'false' }}" === "true";
+                                    if (isAuthenticated) {
+                                        try { await OneSignal.User.addTag("username", "{{ current_user.username | e }}"); } catch (e) {}
+                                    }
+                    } catch (e) {
+                        console.warn('OneSignal init error:', e);
+                    }
+                });
+            </script>
+            {% endif %}
+
 </body>
 </html>
