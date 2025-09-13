@@ -38,6 +38,14 @@ export PORT=5004
 SECRET_KEY=$(python3 -c 'import secrets; print(secrets.token_hex(32))')
 export SECRET_KEY="$SECRET_KEY"
 
+# OneSignal konfigürasyonu
+export ONESIGNAL_APP_ID="0047e2bf-7209-4b1c-b222-310e700a9780"
+export ONESIGNAL_API_KEY="os_v2_app_abd6fp3sbffrzmrcgehhacuxqcalxza3656u4p5gzxpcmji55xmckrxansybtyo6nvii2pq2onkoguolsra7lj6j3thkrq5sijnesvy"
+export ONESIGNAL_APNS_TEAM_ID="435XR8VR9X"
+export ONESIGNAL_APNS_BUNDLE_ID="com.helmex"
+
+echo "📱 OneSignal konfigürasyonu ayarlandı!"
+
 echo "🗄️ Database hazırlanıyor..."
 python3 -c "
 from app import app, db

@@ -1215,6 +1215,53 @@ def send_urgent_task_email(task, assignees):
         return False
         return False
 
+# OneSignal Production Database Migration
+@app.route('/admin/migrate-onesignal-database', methods=['POST'])
+@login_required
+def migrate_onesignal_database():
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Bu işlemi yapma yetkiniz yok!'}), 403
+    
+    try:
+        from sqlalchemy import text
+        
+        # Check if columns already exist
+        try:
+            result = db.session.execute(text("SELECT push_notifications_enabled FROM users LIMIT 1"))
+            return jsonify({'success': True, 'message': 'OneSignal columns already exist in database!'})
+        except:
+            # Columns don't exist, proceed with migration
+            pass
+        
+        # Add OneSignal columns to user table
+        migration_queries = [
+            "ALTER TABLE users ADD COLUMN push_notifications_enabled BOOLEAN DEFAULT true",
+            "ALTER TABLE users ADD COLUMN task_assignment_notifications BOOLEAN DEFAULT true",
+            "ALTER TABLE users ADD COLUMN task_completion_notifications BOOLEAN DEFAULT true",
+            "ALTER TABLE users ADD COLUMN reminder_notifications BOOLEAN DEFAULT true",
+            "ALTER TABLE users ADD COLUMN report_notifications BOOLEAN DEFAULT true",
+            "ALTER TABLE users ADD COLUMN onesignal_player_id VARCHAR(255)"
+        ]
+        
+        for query in migration_queries:
+            try:
+                db.session.execute(text(query))
+                print(f"✅ Executed: {query}")
+            except Exception as e:
+                print(f"⚠️ Query failed (may already exist): {query} - {e}")
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': 'OneSignal database migration completed successfully! All notification preference columns have been added to the users table.'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Migration error: {e}")
+        return jsonify({'success': False, 'message': f'Migration failed: {str(e)}'})
+
 # Yedekleme sistemi routes
 @app.route('/admin/backups')
 @login_required

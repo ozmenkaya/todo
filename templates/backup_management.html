@@ -7,11 +7,16 @@
     <div class="col-12">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2><i class="fas fa-hdd"></i> Yedekleme Yönetimi</h2>
-            <form method="POST" action="{{ url_for('create_backup') }}" style="display: inline;">
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> Yeni Yedek Al
+            <div>
+                <button type="button" class="btn btn-warning me-2" onclick="migrateOneSignalDatabase()">
+                    <i class="fas fa-database"></i> OneSignal Migration
                 </button>
-            </form>
+                <form method="POST" action="{{ url_for('create_backup') }}" style="display: inline;">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Yeni Yedek Al
+                    </button>
+                </form>
+            </div>
         </div>
 
         <!-- Yedekleme İstatistikleri -->
@@ -152,4 +157,43 @@
         </div>
     </div>
 </div>
+
+<script>
+function migrateOneSignalDatabase() {
+    if (!confirm('OneSignal database migration işlemini başlatmak istediğinize emin misiniz? Bu işlem production veritabanına OneSignal bildirim sütunlarını ekleyecektir.')) {
+        return;
+    }
+    
+    // Show loading state
+    const button = event.target;
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Migration çalışıyor...';
+    button.disabled = true;
+    
+    fetch('/admin/migrate-onesignal-database', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ ' + data.message);
+            location.reload(); // Sayfayı yenile
+        } else {
+            alert('❌ Migration failed: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Migration error:', error);
+        alert('❌ Migration request failed: ' + error.message);
+    })
+    .finally(() => {
+        // Restore button state
+        button.innerHTML = originalText;
+        button.disabled = false;
+    });
+}
+</script>
 {% endblock %}
