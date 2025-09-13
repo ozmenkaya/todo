@@ -126,16 +126,23 @@ def send_task_notification(task_title: str, message: str, user_ids: List[int], t
     from models import User
     
     # Sadece task assignment notifications etkin olan kullanıcıları filtrele
-    eligible_users = User.query.filter(
-        User.id.in_(user_ids),
-        User.push_notifications_enabled == True,
-        User.task_assignment_notifications == True
-    ).all()
+    # Migration öncesi için None check ekle
+    eligible_users = User.query.filter(User.id.in_(user_ids)).all()
     
-    if not eligible_users:
+    # Migration sonrası için preference check
+    filtered_users = []
+    for user in eligible_users:
+        # Eğer sütunlar yoksa (migration öncesi) tüm kullanıcılara gönder
+        push_enabled = getattr(user, 'push_notifications_enabled', True)
+        task_notifications = getattr(user, 'task_assignment_notifications', True)
+        
+        if push_enabled is not False and task_notifications is not False:
+            filtered_users.append(user)
+    
+    if not filtered_users:
         return False
     
-    eligible_ids = [user.id for user in eligible_users]
+    eligible_ids = [user.id for user in filtered_users]
     
     data = {'type': 'task'}
     url = None
@@ -163,17 +170,21 @@ def send_reminder_notification(reminder_title: str, message: str, user_ids: List
     """Anımsatıcı bildirimi gönder - sadece ayarları etkin olan kullanıcılara"""
     from models import User
     
-    # Sadece reminder notifications etkin olan kullanıcıları filtrele
-    eligible_users = User.query.filter(
-        User.id.in_(user_ids),
-        User.push_notifications_enabled == True,
-        User.reminder_notifications == True
-    ).all()
+    # Migration öncesi/sonrası uyumlu kullanıcı filtresi
+    eligible_users = User.query.filter(User.id.in_(user_ids)).all()
     
-    if not eligible_users:
+    filtered_users = []
+    for user in eligible_users:
+        push_enabled = getattr(user, 'push_notifications_enabled', True)
+        reminder_notifications = getattr(user, 'reminder_notifications', True)
+        
+        if push_enabled is not False and reminder_notifications is not False:
+            filtered_users.append(user)
+    
+    if not filtered_users:
         return False
     
-    eligible_ids = [user.id for user in eligible_users]
+    eligible_ids = [user.id for user in filtered_users]
     
     return onesignal_service.send_notification(
         title=f"⏰ {reminder_title}",
@@ -187,17 +198,21 @@ def send_report_notification(report_title: str, message: str, user_ids: List[int
     """Rapor bildirimi gönder - sadece ayarları etkin olan kullanıcılara"""
     from models import User
     
-    # Sadece report notifications etkin olan kullanıcıları filtrele
-    eligible_users = User.query.filter(
-        User.id.in_(user_ids),
-        User.push_notifications_enabled == True,
-        User.report_notifications == True
-    ).all()
+    # Migration öncesi/sonrası uyumlu kullanıcı filtresi
+    eligible_users = User.query.filter(User.id.in_(user_ids)).all()
     
-    if not eligible_users:
+    filtered_users = []
+    for user in eligible_users:
+        push_enabled = getattr(user, 'push_notifications_enabled', True)
+        report_notifications = getattr(user, 'report_notifications', True)
+        
+        if push_enabled is not False and report_notifications is not False:
+            filtered_users.append(user)
+    
+    if not filtered_users:
         return False
     
-    eligible_ids = [user.id for user in eligible_users]
+    eligible_ids = [user.id for user in filtered_users]
     
     data = {'type': 'report'}
     url = None
@@ -224,17 +239,21 @@ def send_task_completion_notification(task_title: str, message: str, user_ids: L
     """Görev tamamlanma bildirimi gönder - sadece ayarları etkin olan kullanıcılara"""
     from models import User
     
-    # Sadece task completion notifications etkin olan kullanıcıları filtrele
-    eligible_users = User.query.filter(
-        User.id.in_(user_ids),
-        User.push_notifications_enabled == True,
-        User.task_completion_notifications == True
-    ).all()
+    # Migration öncesi/sonrası uyumlu kullanıcı filtresi
+    eligible_users = User.query.filter(User.id.in_(user_ids)).all()
     
-    if not eligible_users:
+    filtered_users = []
+    for user in eligible_users:
+        push_enabled = getattr(user, 'push_notifications_enabled', True)
+        completion_notifications = getattr(user, 'task_completion_notifications', True)
+        
+        if push_enabled is not False and completion_notifications is not False:
+            filtered_users.append(user)
+    
+    if not filtered_users:
         return False
     
-    eligible_ids = [user.id for user in eligible_users]
+    eligible_ids = [user.id for user in filtered_users]
     
     data = {'type': 'task_completion'}
     url = None

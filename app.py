@@ -1410,17 +1410,23 @@ def mail_settings():
     return render_template('mail_settings.html', config=app.config)
 
 # Notification settings route
+# Notification settings route
 @app.route('/notification-settings', methods=['GET', 'POST'])
 @login_required
 def notification_settings():
     if request.method == 'POST':
         try:
-            # Form verilerini al
-            current_user.push_notifications_enabled = bool(request.form.get('push_notifications_enabled'))
-            current_user.task_assignment_notifications = bool(request.form.get('task_assignment_notifications'))
-            current_user.task_completion_notifications = bool(request.form.get('task_completion_notifications'))
-            current_user.reminder_notifications = bool(request.form.get('reminder_notifications'))
-            current_user.report_notifications = bool(request.form.get('report_notifications'))
+            # Form verilerini al - Migrate edilmemiş kullanıcılar için None check
+            if hasattr(current_user, 'push_notifications_enabled'):
+                current_user.push_notifications_enabled = bool(request.form.get('push_notifications_enabled'))
+            if hasattr(current_user, 'task_assignment_notifications'):
+                current_user.task_assignment_notifications = bool(request.form.get('task_assignment_notifications'))
+            if hasattr(current_user, 'task_completion_notifications'):
+                current_user.task_completion_notifications = bool(request.form.get('task_completion_notifications'))
+            if hasattr(current_user, 'reminder_notifications'):
+                current_user.reminder_notifications = bool(request.form.get('reminder_notifications'))
+            if hasattr(current_user, 'report_notifications'):
+                current_user.report_notifications = bool(request.form.get('report_notifications'))
             
             db.session.commit()
             flash('✅ Bildirim ayarları başarıyla güncellendi!', 'success')
@@ -1428,6 +1434,7 @@ def notification_settings():
         except Exception as e:
             db.session.rollback()
             flash(f'❌ Bildirim ayarları güncellenirken hata oluştu: {str(e)}', 'danger')
+            print(f"Notification settings error: {e}")
     
     return render_template('notification_settings.html')
 

@@ -18,7 +18,7 @@
                             <!-- Ana Push Bildirim Kontrolü -->
                             <div class="form-check form-switch mb-3">
                                 <input class="form-check-input" type="checkbox" id="push_notifications_enabled" 
-                                       name="push_notifications_enabled" {{ 'checked' if current_user.push_notifications_enabled }}>
+                                       name="push_notifications_enabled" {{ 'checked' if current_user.push_notifications_enabled and current_user.push_notifications_enabled != None }}>
                                 <label class="form-check-label" for="push_notifications_enabled">
                                     <strong>Push Bildirimleri Etkin</strong>
                                     <small class="d-block text-muted">Tüm push bildirimlerini kontrol eder</small>
@@ -33,7 +33,7 @@
                             <div class="form-check form-switch mb-3">
                                 <input class="form-check-input notification-setting" type="checkbox" 
                                        id="task_assignment_notifications" name="task_assignment_notifications" 
-                                       {{ 'checked' if current_user.task_assignment_notifications }}>
+                                       {{ 'checked' if current_user.task_assignment_notifications and current_user.task_assignment_notifications != None }}>
                                 <label class="form-check-label" for="task_assignment_notifications">
                                     <i class="fas fa-tasks text-primary"></i> Görev Atamaları
                                     <small class="d-block text-muted">Size yeni görev atandığında bildirim al</small>
@@ -43,7 +43,7 @@
                             <div class="form-check form-switch mb-3">
                                 <input class="form-check-input notification-setting" type="checkbox" 
                                        id="task_completion_notifications" name="task_completion_notifications" 
-                                       {{ 'checked' if current_user.task_completion_notifications }}>
+                                       {{ 'checked' if current_user.task_completion_notifications and current_user.task_completion_notifications != None }}>
                                 <label class="form-check-label" for="task_completion_notifications">
                                     <i class="fas fa-check-circle text-success"></i> Görev Tamamlanması
                                     <small class="d-block text-muted">Oluşturduğunuz görevler tamamlandığında bildirim al</small>
@@ -53,7 +53,7 @@
                             <div class="form-check form-switch mb-3">
                                 <input class="form-check-input notification-setting" type="checkbox" 
                                        id="reminder_notifications" name="reminder_notifications" 
-                                       {{ 'checked' if current_user.reminder_notifications }}>
+                                       {{ 'checked' if current_user.reminder_notifications and current_user.reminder_notifications != None }}>
                                 <label class="form-check-label" for="reminder_notifications">
                                     <i class="fas fa-clock text-warning"></i> Anımsatıcılar
                                     <small class="d-block text-muted">Anımsatıcı bildirimleri al</small>
@@ -63,7 +63,7 @@
                             <div class="form-check form-switch mb-3">
                                 <input class="form-check-input notification-setting" type="checkbox" 
                                        id="report_notifications" name="report_notifications" 
-                                       {{ 'checked' if current_user.report_notifications }}>
+                                       {{ 'checked' if current_user.report_notifications and current_user.report_notifications != None }}>
                                 <label class="form-check-label" for="report_notifications">
                                     <i class="fas fa-chart-bar text-info"></i> Raporlar
                                     <small class="d-block text-muted">Rapor paylaşımları ve yorumlar için bildirim al</small>
