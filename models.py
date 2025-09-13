@@ -42,6 +42,14 @@ class User(UserMixin, db.Model):
     department = db.Column(db.String(100))  # PostgreSQL için artırıldı
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
+    # OneSignal Notification Settings
+    push_notifications_enabled = db.Column(db.Boolean, default=True)
+    task_assignment_notifications = db.Column(db.Boolean, default=True)
+    task_completion_notifications = db.Column(db.Boolean, default=True)
+    reminder_notifications = db.Column(db.Boolean, default=True)
+    report_notifications = db.Column(db.Boolean, default=True)
+    onesignal_player_id = db.Column(db.String(255))  # OneSignal Player ID
+    
     # İlişkiler
     assigned_tasks = db.relationship('Task', secondary=task_assignments, back_populates='assignees', lazy='dynamic')
     created_tasks = db.relationship('Task', foreign_keys='Task.created_by', lazy='dynamic')

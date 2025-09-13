@@ -18,6 +18,10 @@ from sqlalchemy import case
 # Mail konfigürasyonu için kalıcı saklama
 from mail_config import save_mail_config, load_mail_config, apply_mail_config_to_app
 
+# OneSignal konfigürasyonu
+from onesignal_config import OneSignalConfig
+from onesignal_service import send_task_notification, send_reminder_notification, send_task_completion_notification
+
 # Task priority sorting helper
 def get_priority_order_clause():
     """
@@ -102,7 +106,7 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here-ch
 @app.context_processor
 def inject_onesignal_config():
     return {
-        'ONESIGNAL_APP_ID': os.environ.get('ONESIGNAL_APP_ID', ''),
+        'ONESIGNAL_APP_ID': OneSignalConfig.APP_ID,
         'ONESIGNAL_ALLOW_LOCALHOST': os.environ.get('ONESIGNAL_ALLOW_LOCALHOST', 'false')
     }
 
@@ -366,9 +370,9 @@ def app_info():
 
 # ---------------- OneSignal backend helper ----------------
 def send_onesignal_notification(headings: dict, contents: dict, filters: list | None = None, include_aliases: dict | None = None):
-    app_id = os.environ.get('ONESIGNAL_APP_ID')
-    rest_api_key = os.environ.get('ONESIGNAL_REST_API_KEY')
-    if not app_id or not rest_api_key:
+    app_id = OneSignalConfig.APP_ID
+    rest_api_key = OneSignalConfig.API_KEY
+    if not OneSignalConfig.is_configured():
         return False, 'OneSignal config missing'
 
     payload = {
@@ -626,6 +630,22 @@ def create_task():
             db.session.commit()
             
             print(f"✅ Task created successfully: {task.title}")
+            
+            # OneSignal push notification gönder
+            try:
+                assignee_ids = [assignee.id for assignee in assignees]
+                notification_sent = send_task_notification(
+                    task_title=task.title,
+                    message=f"Yeni görev atandı: {task.title}",
+                    user_ids=assignee_ids,
+                    task_id=task.id
+                )
+                if notification_sent:
+                    print(f"📱 Push notification sent to {len(assignee_ids)} users")
+                else:
+                    print(f"⚠️ Push notification failed")
+            except Exception as push_error:
+                print(f"⚠️ Push notification error: {push_error}")
             
             # Acil görevler için mail gönder
             if priority == 'urgent':
@@ -1002,6 +1022,19 @@ def add_reminder():
         
         db.session.add(reminder)
         db.session.commit()
+        
+        # Reminder için push notification gönder
+        try:
+            notification_sent = send_reminder_notification(
+                reminder_title=title,
+                message=f"Yeni anımsatıcı: {title}",
+                user_ids=[current_user.id]
+            )
+            if notification_sent:
+                print(f"📱 Reminder notification sent to user {current_user.id}")
+        except Exception as push_error:
+            print(f"⚠️ Reminder notification error: {push_error}")
+        
         flash('Anımsatıcı başarıyla eklendi!')
         return redirect(url_for('reminders'))
     
@@ -1329,6 +1362,28 @@ def mail_settings():
     
     return render_template('mail_settings.html', config=app.config)
 
+# Notification settings route
+@app.route('/notification-settings', methods=['GET', 'POST'])
+@login_required
+def notification_settings():
+    if request.method == 'POST':
+        try:
+            # Form verilerini al
+            current_user.push_notifications_enabled = bool(request.form.get('push_notifications_enabled'))
+            current_user.task_assignment_notifications = bool(request.form.get('task_assignment_notifications'))
+            current_user.task_completion_notifications = bool(request.form.get('task_completion_notifications'))
+            current_user.reminder_notifications = bool(request.form.get('reminder_notifications'))
+            current_user.report_notifications = bool(request.form.get('report_notifications'))
+            
+            db.session.commit()
+            flash('✅ Bildirim ayarları başarıyla güncellendi!', 'success')
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'❌ Bildirim ayarları güncellenirken hata oluştu: {str(e)}', 'danger')
+    
+    return render_template('notification_settings.html')
+
 @app.route('/admin/timezone-settings', methods=['GET', 'POST'])
 @login_required
 def timezone_settings():
@@ -1473,6 +1528,19 @@ def complete_task(task_id):
         # Görevi tamamlandı olarak işaretle
         task.status = 'completed'
         db.session.commit()
+        
+        # Görev oluşturan kişiye bildirim gönder
+        try:
+            creator_notification_sent = send_task_completion_notification(
+                task_title=task.title,
+                message=f"Görev tamamlandı: {task.title}",
+                user_ids=[task.created_by],
+                task_id=task.id
+            )
+            if creator_notification_sent:
+                print(f"📱 Task completion notification sent to creator (ID: {task.created_by})")
+        except Exception as push_error:
+            print(f"⚠️ Task completion notification error: {push_error}")
         
         flash(f'Görev "{task.title}" tamamlandı olarak işaretlendi!')
         

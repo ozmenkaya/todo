@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-bell"></i> Bildirim Ayarları
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-lg-6">
+                            <h6><i class="fas fa-mobile-alt"></i> Push Bildirimleri</h6>
+                            
+                            <!-- Ana Push Bildirim Kontrolü -->
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="push_notifications_enabled" 
+                                       name="push_notifications_enabled" {{ 'checked' if current_user.push_notifications_enabled }}>
+                                <label class="form-check-label" for="push_notifications_enabled">
+                                    <strong>Push Bildirimleri Etkin</strong>
+                                    <small class="d-block text-muted">Tüm push bildirimlerini kontrol eder</small>
+                                </label>
+                            </div>
+                            
+                            <hr>
+                            
+                            <!-- Spesifik Bildirim Türleri -->
+                            <h6><i class="fas fa-cog"></i> Bildirim Türleri</h6>
+                            
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input notification-setting" type="checkbox" 
+                                       id="task_assignment_notifications" name="task_assignment_notifications" 
+                                       {{ 'checked' if current_user.task_assignment_notifications }}>
+                                <label class="form-check-label" for="task_assignment_notifications">
+                                    <i class="fas fa-tasks text-primary"></i> Görev Atamaları
+                                    <small class="d-block text-muted">Size yeni görev atandığında bildirim al</small>
+                                </label>
+                            </div>
+                            
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input notification-setting" type="checkbox" 
+                                       id="task_completion_notifications" name="task_completion_notifications" 
+                                       {{ 'checked' if current_user.task_completion_notifications }}>
+                                <label class="form-check-label" for="task_completion_notifications">
+                                    <i class="fas fa-check-circle text-success"></i> Görev Tamamlanması
+                                    <small class="d-block text-muted">Oluşturduğunuz görevler tamamlandığında bildirim al</small>
+                                </label>
+                            </div>
+                            
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input notification-setting" type="checkbox" 
+                                       id="reminder_notifications" name="reminder_notifications" 
+                                       {{ 'checked' if current_user.reminder_notifications }}>
+                                <label class="form-check-label" for="reminder_notifications">
+                                    <i class="fas fa-clock text-warning"></i> Anımsatıcılar
+                                    <small class="d-block text-muted">Anımsatıcı bildirimleri al</small>
+                                </label>
+                            </div>
+                            
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input notification-setting" type="checkbox" 
+                                       id="report_notifications" name="report_notifications" 
+                                       {{ 'checked' if current_user.report_notifications }}>
+                                <label class="form-check-label" for="report_notifications">
+                                    <i class="fas fa-chart-bar text-info"></i> Raporlar
+                                    <small class="d-block text-muted">Rapor paylaşımları ve yorumlar için bildirim al</small>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="col-lg-6">
+                            <h6><i class="fas fa-info-circle"></i> Bilgilendirme</h6>
+                            <div class="alert alert-info">
+                                <h6><i class="fas fa-lightbulb"></i> OneSignal Hakkında</h6>
+                                <p class="mb-2">
+                                    Bu uygulama push bildirimleri için <strong>OneSignal</strong> servisi kullanır.
+                                </p>
+                                <ul class="mb-0 small">
+                                    <li>Bildirimler tarayıcınıza gönderilir</li>
+                                    <li>İlk kez izin vermeniz gerekebilir</li>
+                                    <li>Mobil cihazlarda daha iyi çalışır</li>
+                                    <li>İnternete bağlı olmadan çalışmaz</li>
+                                </ul>
+                            </div>
+                            
+                            <div class="alert alert-warning" id="browser-support-warning" style="display: none;">
+                                <h6><i class="fas fa-exclamation-triangle"></i> Tarayıcı Desteği</h6>
+                                <p class="mb-0">
+                                    Tarayıcınız push bildirimleri desteklemiyor olabilir. 
+                                    Chrome, Firefox, Safari veya Edge kullanmanızı öneriyiz.
+                                </p>
+                            </div>
+                            
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6><i class="fas fa-mobile-alt"></i> Cihaz Durumu</h6>
+                                    <div id="device-status">
+                                        <p class="text-muted mb-2">
+                                            <i class="fas fa-spinner fa-spin"></i> OneSignal durumu kontrol ediliyor...
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Geri
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Ayarları Kaydet
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const mainToggle = document.getElementById('push_notifications_enabled');
+    const subToggles = document.querySelectorAll('.notification-setting');
+    
+    // Ana toggle değiştiğinde alt ayarları aktif/pasif yap
+    mainToggle.addEventListener('change', function() {
+        subToggles.forEach(toggle => {
+            toggle.disabled = !this.checked;
+            if (!this.checked) {
+                toggle.closest('.form-check').style.opacity = '0.5';
+            } else {
+                toggle.closest('.form-check').style.opacity = '1';
+            }
+        });
+    });
+    
+    // Sayfa yüklendiğinde durumu kontrol et
+    if (!mainToggle.checked) {
+        subToggles.forEach(toggle => {
+            toggle.disabled = true;
+            toggle.closest('.form-check').style.opacity = '0.5';
+        });
+    }
+    
+    // OneSignal durumunu kontrol et
+    if (typeof OneSignal !== 'undefined') {
+        checkOneSignalStatus();
+    } else {
+        document.getElementById('device-status').innerHTML = 
+            '<p class="text-danger mb-0"><i class="fas fa-times-circle"></i> OneSignal yüklenemedi</p>';
+    }
+});
+
+function checkOneSignalStatus() {
+    const statusDiv = document.getElementById('device-status');
+    
+    try {
+        // OneSignal durumunu kontrol et
+        OneSignal.Notifications.permission.then(function(permission) {
+            let statusHtml = '';
+            
+            if (permission === 'granted') {
+                statusHtml = '<p class="text-success mb-1"><i class="fas fa-check-circle"></i> Bildirimler aktif</p>';
+                
+                // Player ID varsa göster
+                OneSignal.User.PushSubscription.id.then(function(playerId) {
+                    if (playerId) {
+                        statusHtml += '<small class="text-muted">Player ID: ' + playerId.substring(0, 8) + '...</small>';
+                    }
+                    statusDiv.innerHTML = statusHtml;
+                });
+            } else if (permission === 'denied') {
+                statusHtml = '<p class="text-danger mb-1"><i class="fas fa-ban"></i> Bildirimler engellenmiş</p>';
+                statusHtml += '<small class="text-muted">Tarayıcı ayarlarından izin vermeniz gerekiyor</small>';
+                statusDiv.innerHTML = statusHtml;
+            } else {
+                statusHtml = '<p class="text-warning mb-1"><i class="fas fa-question-circle"></i> Bildirim izni verilmemiş</p>';
+                statusHtml += '<button class="btn btn-sm btn-warning" onclick="requestNotificationPermission()">İzin Ver</button>';
+                statusDiv.innerHTML = statusHtml;
+            }
+        });
+    } catch (error) {
+        console.error('OneSignal status check error:', error);
+        statusDiv.innerHTML = '<p class="text-warning mb-0"><i class="fas fa-exclamation-triangle"></i> Durum kontrol edilemiyor</p>';
+    }
+}
+
+function requestNotificationPermission() {
+    if (typeof OneSignal !== 'undefined') {
+        OneSignal.Notifications.requestPermission().then(function(accepted) {
+            setTimeout(checkOneSignalStatus, 1000); // 1 saniye sonra durumu tekrar kontrol et
+        });
+    }
+}
+</script>
+{% endblock %}

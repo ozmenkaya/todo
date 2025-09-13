@@ -28,6 +28,9 @@
     <!-- Summernote CSS -->
     <link href="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-bs5.min.css" rel="stylesheet">
     
+    <!-- OneSignal Push Notification SDK -->
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    
     <style>
         /* Mobile-First Responsive Design */
         :root {
@@ -672,6 +675,9 @@
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#accountModal">
                                     <i class="fas fa-user-cog"></i> Hesabım
+                                </a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('notification_settings') }}">
+                                    <i class="fas fa-bell"></i> Bildirim Ayarları
                                 </a></li>
                                 <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}">
                                     <i class="fas fa-sign-out-alt"></i> Çıkış
