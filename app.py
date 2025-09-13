@@ -18,10 +18,6 @@ from sqlalchemy import case
 # Mail konfigürasyonu için kalıcı saklama
 from mail_config import save_mail_config, load_mail_config, apply_mail_config_to_app
 
-# OneSignal konfigürasyonu
-from onesignal_config import OneSignalConfig
-from onesignal_service import send_task_notification, send_reminder_notification, send_task_completion_notification
-
 # Task priority sorting helper
 def get_priority_order_clause():
     """
@@ -101,14 +97,6 @@ def istanbul_to_utc(istanbul_dt):
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here-change-in-production')
-
-# Expose OneSignal config to all templates
-@app.context_processor
-def inject_onesignal_config():
-    return {
-        'ONESIGNAL_APP_ID': OneSignalConfig.APP_ID,
-        'ONESIGNAL_ALLOW_LOCALHOST': os.environ.get('ONESIGNAL_ALLOW_LOCALHOST', 'false')
-    }
 
 # Database configuration - PostgreSQL for production, SQLite for development
 database_url = os.environ.get('DATABASE_URL')
@@ -322,15 +310,6 @@ def service_worker():
     """Service Worker dosyasını serve et"""
     return send_from_directory('static', 'sw.js', mimetype='application/javascript')
 
-# OneSignal SDK worker dosyalarını kökten serve et (OneSignal gereksinimi)
-@app.route('/OneSignalSDKWorker.js')
-def onesignal_sdk_worker():
-    return send_from_directory('static', 'OneSignalSDKWorker.js', mimetype='application/javascript')
-
-@app.route('/OneSignalSDKUpdaterWorker.js')
-def onesignal_sdk_updater_worker():
-    return send_from_directory('static', 'OneSignalSDKUpdaterWorker.js', mimetype='application/javascript')
-
 @app.route('/api/current-time')
 def current_time():
     """Mevcut timezone'da saati JSON olarak döndür"""
@@ -367,57 +346,6 @@ def app_info():
             'Mobil uyumlu tasarım'
         ]
     })
-
-# ---------------- OneSignal backend helper ----------------
-def send_onesignal_notification(headings: dict, contents: dict, filters: list | None = None, include_aliases: dict | None = None):
-    app_id = OneSignalConfig.APP_ID
-    rest_api_key = OneSignalConfig.API_KEY
-    if not OneSignalConfig.is_configured():
-        return False, 'OneSignal config missing'
-
-    payload = {
-        'app_id': app_id,
-        'headings': headings,
-        'contents': contents
-    }
-    if filters:
-        payload['filters'] = filters
-    if include_aliases:
-        payload['include_aliases'] = include_aliases
-
-    try:
-        resp = requests.post(
-            'https://api.onesignal.com/notifications',
-            headers={
-                'Authorization': f'Basic {rest_api_key}',
-                'Content-Type': 'application/json'
-            },
-            data=json.dumps(payload),
-            timeout=10
-        )
-        ok = 200 <= resp.status_code < 300
-        return ok, (resp.json() if ok else resp.text)
-    except Exception as e:
-        return False, str(e)
-
-@app.route('/admin/test_push', methods=['POST'])
-@login_required
-def admin_test_push():
-    if current_user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
-    # Frontend, kullanıcıya "username" tag'i ekliyor; bu nedenle tag filtreleri ile hedefleyelim
-    filters = [{
-        "field": "tag",
-        "key": "username",
-        "relation": "=",
-        "value": current_user.username
-    }]
-    ok, data = send_onesignal_notification(
-        headings={"en": "Helmex"},
-        contents={"en": "Test notification"},
-        filters=filters
-    )
-    return jsonify({'ok': ok, 'data': data}), (200 if ok else 500)
 
 # Giriş sayfası
 @app.route('/login', methods=['GET', 'POST'])
@@ -630,22 +558,6 @@ def create_task():
             db.session.commit()
             
             print(f"✅ Task created successfully: {task.title}")
-            
-            # OneSignal push notification gönder
-            try:
-                assignee_ids = [assignee.id for assignee in assignees]
-                notification_sent = send_task_notification(
-                    task_title=task.title,
-                    message=f"Yeni görev atandı: {task.title}",
-                    user_ids=assignee_ids,
-                    task_id=task.id
-                )
-                if notification_sent:
-                    print(f"📱 Push notification sent to {len(assignee_ids)} users")
-                else:
-                    print(f"⚠️ Push notification failed")
-            except Exception as push_error:
-                print(f"⚠️ Push notification error: {push_error}")
             
             # Acil görevler için mail gönder
             if priority == 'urgent':
@@ -1022,19 +934,6 @@ def add_reminder():
         
         db.session.add(reminder)
         db.session.commit()
-        
-        # Reminder için push notification gönder
-        try:
-            notification_sent = send_reminder_notification(
-                reminder_title=title,
-                message=f"Yeni anımsatıcı: {title}",
-                user_ids=[current_user.id]
-            )
-            if notification_sent:
-                print(f"📱 Reminder notification sent to user {current_user.id}")
-        except Exception as push_error:
-            print(f"⚠️ Reminder notification error: {push_error}")
-        
         flash('Anımsatıcı başarıyla eklendi!')
         return redirect(url_for('reminders'))
     
@@ -1215,53 +1114,6 @@ def send_urgent_task_email(task, assignees):
         return False
         return False
 
-# OneSignal Production Database Migration
-@app.route('/admin/migrate-onesignal-database', methods=['POST'])
-@login_required
-def migrate_onesignal_database():
-    if current_user.role != 'admin':
-        return jsonify({'error': 'Bu işlemi yapma yetkiniz yok!'}), 403
-    
-    try:
-        from sqlalchemy import text
-        
-        # Check if columns already exist
-        try:
-            result = db.session.execute(text("SELECT push_notifications_enabled FROM users LIMIT 1"))
-            return jsonify({'success': True, 'message': 'OneSignal columns already exist in database!'})
-        except:
-            # Columns don't exist, proceed with migration
-            pass
-        
-        # Add OneSignal columns to user table
-        migration_queries = [
-            "ALTER TABLE users ADD COLUMN push_notifications_enabled BOOLEAN DEFAULT true",
-            "ALTER TABLE users ADD COLUMN task_assignment_notifications BOOLEAN DEFAULT true",
-            "ALTER TABLE users ADD COLUMN task_completion_notifications BOOLEAN DEFAULT true",
-            "ALTER TABLE users ADD COLUMN reminder_notifications BOOLEAN DEFAULT true",
-            "ALTER TABLE users ADD COLUMN report_notifications BOOLEAN DEFAULT true",
-            "ALTER TABLE users ADD COLUMN onesignal_player_id VARCHAR(255)"
-        ]
-        
-        for query in migration_queries:
-            try:
-                db.session.execute(text(query))
-                print(f"✅ Executed: {query}")
-            except Exception as e:
-                print(f"⚠️ Query failed (may already exist): {query} - {e}")
-        
-        db.session.commit()
-        
-        return jsonify({
-            'success': True, 
-            'message': 'OneSignal database migration completed successfully! All notification preference columns have been added to the users table.'
-        })
-        
-    except Exception as e:
-        db.session.rollback()
-        print(f"❌ Migration error: {e}")
-        return jsonify({'success': False, 'message': f'Migration failed: {str(e)}'})
-
 # Yedekleme sistemi routes
 @app.route('/admin/backups')
 @login_required
@@ -1409,35 +1261,6 @@ def mail_settings():
     
     return render_template('mail_settings.html', config=app.config)
 
-# Notification settings route
-# Notification settings route
-@app.route('/notification-settings', methods=['GET', 'POST'])
-@login_required
-def notification_settings():
-    if request.method == 'POST':
-        try:
-            # Form verilerini al - Migrate edilmemiş kullanıcılar için None check
-            if hasattr(current_user, 'push_notifications_enabled'):
-                current_user.push_notifications_enabled = bool(request.form.get('push_notifications_enabled'))
-            if hasattr(current_user, 'task_assignment_notifications'):
-                current_user.task_assignment_notifications = bool(request.form.get('task_assignment_notifications'))
-            if hasattr(current_user, 'task_completion_notifications'):
-                current_user.task_completion_notifications = bool(request.form.get('task_completion_notifications'))
-            if hasattr(current_user, 'reminder_notifications'):
-                current_user.reminder_notifications = bool(request.form.get('reminder_notifications'))
-            if hasattr(current_user, 'report_notifications'):
-                current_user.report_notifications = bool(request.form.get('report_notifications'))
-            
-            db.session.commit()
-            flash('✅ Bildirim ayarları başarıyla güncellendi!', 'success')
-            
-        except Exception as e:
-            db.session.rollback()
-            flash(f'❌ Bildirim ayarları güncellenirken hata oluştu: {str(e)}', 'danger')
-            print(f"Notification settings error: {e}")
-    
-    return render_template('notification_settings.html')
-
 @app.route('/admin/timezone-settings', methods=['GET', 'POST'])
 @login_required
 def timezone_settings():
@@ -1582,19 +1405,6 @@ def complete_task(task_id):
         # Görevi tamamlandı olarak işaretle
         task.status = 'completed'
         db.session.commit()
-        
-        # Görev oluşturan kişiye bildirim gönder
-        try:
-            creator_notification_sent = send_task_completion_notification(
-                task_title=task.title,
-                message=f"Görev tamamlandı: {task.title}",
-                user_ids=[task.created_by],
-                task_id=task.id
-            )
-            if creator_notification_sent:
-                print(f"📱 Task completion notification sent to creator (ID: {task.created_by})")
-        except Exception as push_error:
-            print(f"⚠️ Task completion notification error: {push_error}")
         
         flash(f'Görev "{task.title}" tamamlandı olarak işaretlendi!')
         

@@ -28,9 +28,6 @@
     <!-- Summernote CSS -->
     <link href="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-bs5.min.css" rel="stylesheet">
     
-    <!-- OneSignal Push Notification SDK -->
-    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-    
     <style>
         /* Mobile-First Responsive Design */
         :root {
@@ -676,9 +673,6 @@
                                 <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#accountModal">
                                     <i class="fas fa-user-cog"></i> Hesabım
                                 </a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('notification_settings') }}">
-                                    <i class="fas fa-bell"></i> Bildirim Ayarları
-                                </a></li>
                                 <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}">
                                     <i class="fas fa-sign-out-alt"></i> Çıkış
                                 </a></li>
@@ -1308,31 +1302,6 @@
     </script>
     
     {% block scripts %}{% endblock %}
-            <!-- OneSignal Web SDK -->
-            {% if ONESIGNAL_APP_ID %}
-            <script src="https://cdn.onesignal.com/sdks/OneSignalSDK.page.js" async></script>
-            <script>
-                window.OneSignalDeferred = window.OneSignalDeferred || [];
-                OneSignalDeferred.push(async function(OneSignal) {
-                    try {
-                        const allowLocalhost = "{{ ONESIGNAL_ALLOW_LOCALHOST | default('false') }}".toLowerCase() === "true";
-                        await OneSignal.init({
-                            appId: "{{ ONESIGNAL_APP_ID }}",
-                            allowLocalhostAsSecureOrigin: allowLocalhost,
-                            serviceWorkerParam: { scope: '/' },
-                            serviceWorkerPath: '/OneSignalSDKWorker.js',
-                            serviceWorkerUpdaterPath: '/OneSignalSDKUpdaterWorker.js'
-                        });
-                                      const isAuthenticated = "{{ 'true' if current_user.is_authenticated else 'false' }}" === "true";
-                                    if (isAuthenticated) {
-                                        try { await OneSignal.User.addTag("username", "{{ current_user.username | e }}"); } catch (e) {}
-                                    }
-                    } catch (e) {
-                        console.warn('OneSignal init error:', e);
-                    }
-                });
-            </script>
-            {% endif %}
 
 </body>
 </html>
