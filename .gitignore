@@ -83,3 +83,4 @@ instance/
 
 # Backup files
 *_backup.*
+direct_digitalocean_migration.py
