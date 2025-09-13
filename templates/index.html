@@ -171,9 +171,8 @@
                                                         <strong><a href="{{ url_for('task_detail', task_id=task.id) }}" class="text-decoration-none">{{ task.title }}</a></strong>
                                                         {% if task.description %}
                                                         <br>
-                                                        <small class="text-muted">{{ (task.description|striptags)[:100] }}{% if (task.description|striptags)|length > 100 %}...{% endif %}</small>
-                                                        {% endif %}
-                                                    </div>
+                                                        <small class="text-muted d-none d-md-block">{{ (task.description|striptags)[:100] }}{% if (task.description|striptags)|length > 100 %}...{% endif %}</small>
+                                                        {% endif %}</div>
                                                 </td>
                                                 <td>
                                                     <span class="badge bg-light text-dark">{% if task.assignees %}{% for assignee in task.assignees %}{{ assignee.username }}{% if not loop.last %}, {% endif %}{% endfor %}{% else %}Atanmamış{% endif %}</span>
@@ -216,6 +215,13 @@
                                                     {% endif %}
                                                 </td>
                                             </tr>
+                                            {% if task.description %}
+                                            <tr class="task-description-row d-table-row d-md-none" data-status="{{ task.status }}">
+                                                <td colspan="7" class="task-description-cell">
+                                                    <small class="text-muted">{{ task.description|striptags }}</small>
+                                                </td>
+                                            </tr>
+                                            {% endif %}
                                             {% endfor %}
                                         </tbody>
                                     </table>
@@ -259,9 +265,8 @@
                                                         <strong><a href="{{ url_for('task_detail', task_id=task.id) }}" class="text-decoration-none">{{ task.title }}</a></strong>
                                                         {% if task.description %}
                                                         <br>
-                                                        <small class="text-muted">{{ (task.description|striptags)[:100] }}{% if (task.description|striptags)|length > 100 %}...{% endif %}</small>
-                                                        {% endif %}
-                                                    </div>
+                                                        <small class="text-muted d-none d-md-block">{{ (task.description|striptags)[:100] }}{% if (task.description|striptags)|length > 100 %}...{% endif %}</small>
+                                                        {% endif %}</div>
                                                 </td>
                                                 <td>
                                                     {% if task.assignees %}
@@ -297,6 +302,13 @@
                                                     {% endif %}
                                                 </td>
                                             </tr>
+                                            {% if task.description %}
+                                            <tr class="task-description-row d-table-row d-md-none" data-status="{{ task.status }}">
+                                                <td colspan="6" class="task-description-cell">
+                                                    <small class="text-muted">{{ task.description|striptags }}</small>
+                                                </td>
+                                            </tr>
+                                            {% endif %}
                                             {% endfor %}
                                         </tbody>
                                     </table>
@@ -351,9 +363,8 @@
                                                         <strong><a href="{{ url_for('task_detail', task_id=task.id) }}" class="text-decoration-none">{{ task.title }}</a></strong>
                                                         {% if task.description %}
                                                         <br>
-                                                        <small class="text-muted">{{ (task.description|striptags)[:100] }}{% if (task.description|striptags)|length > 100 %}...{% endif %}</small>
-                                                        {% endif %}
-                                                    </div>
+                                                        <small class="text-muted d-none d-md-block">{{ (task.description|striptags)[:100] }}{% if (task.description|striptags)|length > 100 %}...{% endif %}</small>
+                                                        {% endif %}</div>
                                                 </td>
                                                 <td>
                                                     {% if task.assignees %}
@@ -394,6 +405,13 @@
                                                     {% endif %}
                                                 </td>
                                             </tr>
+                                            {% if task.description %}
+                                            <tr class="task-description-row d-table-row d-md-none" data-status="{{ task.status }}">
+                                                <td colspan="7" class="task-description-cell">
+                                                    <small class="text-muted">{{ task.description|striptags }}</small>
+                                                </td>
+                                            </tr>
+                                            {% endif %}
                                             {% endfor %}
                                         </tbody>
                                     </table>
@@ -476,9 +494,8 @@
                                                         <strong><a href="{{ url_for('task_detail', task_id=task.id) }}" class="text-decoration-none">{{ task.title }}</a></strong>
                                                         {% if task.description %}
                                                         <br>
-                                                        <small class="text-muted">{{ (task.description|striptags)[:100] }}{% if (task.description|striptags)|length > 100 %}...{% endif %}</small>
-                                                        {% endif %}
-                                                    </div>
+                                                        <small class="text-muted d-none d-md-block">{{ (task.description|striptags)[:100] }}{% if (task.description|striptags)|length > 100 %}...{% endif %}</small>
+                                                        {% endif %}</div>
                                                 </td>
                                                 <td>
                                                     {% if task.assignees %}
@@ -527,6 +544,13 @@
                                                     {% endif %}
                                                 </td>
                                             </tr>
+                                            {% if task.description %}
+                                            <tr class="task-description-row d-table-row d-md-none" data-status="{{ task.status }}">
+                                                <td colspan="7" class="task-description-cell">
+                                                    <small class="text-muted">{{ task.description|striptags }}</small>
+                                                </td>
+                                            </tr>
+                                            {% endif %}
                                             {% endfor %}
                                         </tbody>
                                     </table>
@@ -588,9 +612,8 @@
                                                         <strong><a href="{{ url_for('task_detail', task_id=task.id) }}" class="text-decoration-none">{{ task.title }}</a></strong>
                                                         {% if task.description %}
                                                         <br>
-                                                        <small class="text-muted">{{ (task.description|striptags)[:100] }}{% if (task.description|striptags)|length > 100 %}...{% endif %}</small>
-                                                        {% endif %}
-                                                    </div>
+                                                        <small class="text-muted d-none d-md-block">{{ (task.description|striptags)[:100] }}{% if (task.description|striptags)|length > 100 %}...{% endif %}</small>
+                                                        {% endif %}</div>
                                                 </td>
                                                 <td>
                                                     <span class="badge bg-light text-dark">{% if task.assignees %}{% for assignee in task.assignees %}{{ assignee.username }}{% if not loop.last %}, {% endif %}{% endfor %}{% else %}Atanmamış{% endif %}</span>
@@ -628,6 +651,13 @@
                                                     {% endif %}
                                                 </td>
                                             </tr>
+                                            {% if task.description %}
+                                            <tr class="task-description-row d-table-row d-md-none" data-status="{{ task.status }}">
+                                                <td colspan="7" class="task-description-cell">
+                                                    <small class="text-muted">{{ task.description|striptags }}</small>
+                                                </td>
+                                            </tr>
+                                            {% endif %}
                                             {% endfor %}
                                         </tbody>
                                     </table>
@@ -680,9 +710,8 @@
                                                         <strong><a href="{{ url_for('task_detail', task_id=task.id) }}" class="text-decoration-none">{{ task.title }}</a></strong>
                                                         {% if task.description %}
                                                         <br>
-                                                        <small class="text-muted">{{ (task.description|striptags)[:100] }}{% if (task.description|striptags)|length > 100 %}...{% endif %}</small>
-                                                        {% endif %}
-                                                    </div>
+                                                        <small class="text-muted d-none d-md-block">{{ (task.description|striptags)[:100] }}{% if (task.description|striptags)|length > 100 %}...{% endif %}</small>
+                                                        {% endif %}</div>
                                                 </td>
                                                 <td>
                                                     {% if task.assignees %}
@@ -718,6 +747,13 @@
                                                     {% endif %}
                                                 </td>
                                             </tr>
+                                            {% if task.description %}
+                                            <tr class="task-description-row d-table-row d-md-none" data-status="{{ task.status }}">
+                                                <td colspan="7" class="task-description-cell">
+                                                    <small class="text-muted">{{ task.description|striptags }}</small>
+                                                </td>
+                                            </tr>
+                                            {% endif %}
                                             {% endfor %}
                                         </tbody>
                                     </table>
