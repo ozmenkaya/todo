@@ -13,9 +13,41 @@ import requests
 
 # Models import
 from models import db, User, Task, Comment, Reminder, Report, ReportComment, task_assignments, report_shares, report_reads
+from sqlalchemy import case
 
 # Mail konfigürasyonu için kalıcı saklama
 from mail_config import save_mail_config, load_mail_config, apply_mail_config_to_app
+
+# Task priority sorting helper
+def get_priority_order_clause():
+    """
+    Priority sıralaması için SQLAlchemy case ifadesi döndürür:
+    1. urgent = 1 (en üst)
+    2. high = 2
+    3. medium = 3  
+    4. low = 4 (en alt)
+    """
+    return case(
+        (Task.priority == 'urgent', 1),
+        (Task.priority == 'high', 2),
+        (Task.priority == 'medium', 3),
+        (Task.priority == 'low', 4),
+        else_=5  # Belirsiz priority'ler en alta
+    )
+
+def apply_priority_date_sorting(query, date_column=None):
+    """
+    Task query'sine priority ve tarih sıralaması uygular:
+    - Priority: urgent -> high -> medium -> low
+    - Aynı priority içinde: En yeni tarih üstte (desc)
+    """
+    if date_column is None:
+        date_column = Task.created_at
+    
+    return query.order_by(
+        get_priority_order_clause().asc(),  # Priority: urgent=1 en üstte
+        date_column.desc()  # Aynı priority içinde en yeni üstte
+    )
 
 # Timezone ayarları import
 from timezone_config import (
@@ -220,33 +252,49 @@ def index():
     TASK_LIMIT = 50  # Her kategori için maksimum 50 görev
     
     if current_user.role == 'admin':
-        # Admin tüm görevleri görebilir - limit ile
-        tasks = Task.query.filter(Task.status != 'completed').order_by(Task.created_at.desc()).limit(TASK_LIMIT).all()
+        # Admin tüm görevleri görebilir - priority ve tarih sıralaması ile
+        tasks = apply_priority_date_sorting(
+            Task.query.filter(Task.status != 'completed')
+        ).limit(TASK_LIMIT).all()
         completed_tasks = Task.query.filter_by(status='completed').order_by(Task.updated_at.desc()).limit(TASK_LIMIT).all()
-        assigned_tasks = current_user.assigned_tasks.filter(Task.status != 'completed').order_by(Task.created_at.desc()).limit(TASK_LIMIT).all()
+        assigned_tasks = apply_priority_date_sorting(
+            current_user.assigned_tasks.filter(Task.status != 'completed')
+        ).limit(TASK_LIMIT).all()
         assigned_completed_tasks = current_user.assigned_tasks.filter_by(status='completed').order_by(Task.updated_at.desc()).limit(TASK_LIMIT).all()
-        created_tasks = Task.query.filter(Task.created_by == current_user.id, Task.status != 'completed').order_by(Task.created_at.desc()).limit(TASK_LIMIT).all()
+        created_tasks = apply_priority_date_sorting(
+            Task.query.filter(Task.created_by == current_user.id, Task.status != 'completed')
+        ).limit(TASK_LIMIT).all()
         created_completed_tasks = Task.query.filter(Task.created_by == current_user.id, Task.status == 'completed').order_by(Task.updated_at.desc()).limit(TASK_LIMIT).all()
     elif current_user.role == 'manager':
-        # Manager kendi departmanındaki görevleri görebilir - limit ile - cache kullanılarak optimize edildi
+        # Manager kendi departmanındaki görevleri görebilir - priority ve tarih sıralaması ile
         dept_users = get_department_users_cached(current_user.department)
         user_ids = [user.id for user in dept_users]
-        # Departmandaki kullanıcılara atanan aktif görevleri bul
-        tasks = Task.query.join(task_assignments).join(User).filter(User.id.in_(user_ids), Task.status != 'completed').order_by(Task.created_at.desc()).limit(TASK_LIMIT).all()
+        # Departmandaki kullanıcılara atanan aktif görevleri bul - priority sıralaması
+        tasks = apply_priority_date_sorting(
+            Task.query.join(task_assignments).join(User).filter(User.id.in_(user_ids), Task.status != 'completed')
+        ).limit(TASK_LIMIT).all()
         # Departmandaki tamamlanan görevler
         completed_tasks = Task.query.join(task_assignments).join(User).filter(User.id.in_(user_ids), Task.status == 'completed').order_by(Task.updated_at.desc()).limit(TASK_LIMIT).all()
-        # Manager'ın atadığı aktif görevler
-        created_tasks = Task.query.filter(Task.created_by == current_user.id, Task.status != 'completed').order_by(Task.created_at.desc()).limit(TASK_LIMIT).all()
+        # Manager'ın atadığı aktif görevler - priority sıralaması
+        created_tasks = apply_priority_date_sorting(
+            Task.query.filter(Task.created_by == current_user.id, Task.status != 'completed')
+        ).limit(TASK_LIMIT).all()
         created_completed_tasks = Task.query.filter(Task.created_by == current_user.id, Task.status == 'completed').order_by(Task.updated_at.desc()).limit(TASK_LIMIT).all()
-        # Manager'a atanan aktif görevler
-        assigned_tasks = current_user.assigned_tasks.filter(Task.status != 'completed').order_by(Task.created_at.desc()).limit(TASK_LIMIT).all()
+        # Manager'a atanan aktif görevler - priority sıralaması
+        assigned_tasks = apply_priority_date_sorting(
+            current_user.assigned_tasks.filter(Task.status != 'completed')
+        ).limit(TASK_LIMIT).all()
         assigned_completed_tasks = current_user.assigned_tasks.filter_by(status='completed').order_by(Task.updated_at.desc()).limit(TASK_LIMIT).all()
     else:
-        # Employee sadece kendine atanan görevleri görebilir - limit ile
-        assigned_tasks = current_user.assigned_tasks.filter(Task.status != 'completed').order_by(Task.created_at.desc()).limit(TASK_LIMIT).all()
+        # Employee sadece kendine atanan görevleri görebilir - priority ve tarih sıralaması ile
+        assigned_tasks = apply_priority_date_sorting(
+            current_user.assigned_tasks.filter(Task.status != 'completed')
+        ).limit(TASK_LIMIT).all()
         assigned_completed_tasks = current_user.assigned_tasks.filter_by(status='completed').order_by(Task.updated_at.desc()).limit(TASK_LIMIT).all()
-        # Employee'nin oluşturduğu görevler (eğer varsa)
-        created_tasks = Task.query.filter(Task.created_by == current_user.id, Task.status != 'completed').order_by(Task.created_at.desc()).limit(TASK_LIMIT).all()
+        # Employee'nin oluşturduğu görevler - priority sıralaması
+        created_tasks = apply_priority_date_sorting(
+            Task.query.filter(Task.created_by == current_user.id, Task.status != 'completed')
+        ).limit(TASK_LIMIT).all()
         created_completed_tasks = Task.query.filter(Task.created_by == current_user.id, Task.status == 'completed').order_by(Task.updated_at.desc()).limit(TASK_LIMIT).all()
         tasks = assigned_tasks
         completed_tasks = assigned_completed_tasks
@@ -353,10 +401,17 @@ def send_onesignal_notification(headings: dict, contents: dict, filters: list | 
 def admin_test_push():
     if current_user.role != 'admin':
         return jsonify({'error': 'Unauthorized'}), 403
+    # Frontend, kullanıcıya "username" tag'i ekliyor; bu nedenle tag filtreleri ile hedefleyelim
+    filters = [{
+        "field": "tag",
+        "key": "username",
+        "relation": "=",
+        "value": current_user.username
+    }]
     ok, data = send_onesignal_notification(
         headings={"en": "Helmex"},
         contents={"en": "Test notification"},
-        include_aliases={"username": [current_user.username]}
+        filters=filters
     )
     return jsonify({'ok': ok, 'data': data}), (200 if ok else 500)
 
@@ -1830,16 +1885,26 @@ def api_tasks_notifications():
         new_tasks_count = 0
         
         for task in user_tasks:
+            # Tarih normalizasyonu
+            due_date_date = None
+            if task.due_date:
+                try:
+                    due_date_date = task.due_date.date()
+                except Exception:
+                    due_date_date = task.due_date
+
             # Gecikmiş görevler
-            if task.due_date and task.due_date < today:
+            if due_date_date and due_date_date < today:
                 overdue_count += 1
+                continue
             
             # Bugün için acil görevler  
-            elif task.due_date == today and task.priority == 'urgent':
+            if due_date_date and due_date_date == today and task.priority == 'urgent':
                 today_urgent_count += 1
+                continue
                 
             # Yeni atanmış görevler (son 24 saat)
-            elif task.created_at >= yesterday and task.status == 'pending':
+            if task.created_at >= yesterday and task.status == 'pending':
                 new_tasks_count += 1
         
         total_notifications = overdue_count + today_urgent_count + new_tasks_count

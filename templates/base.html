@@ -247,21 +247,7 @@
         .nav-icon-container {
             position: relative;
         }
-        
-        /* Mobile Read Status Icons */
-        .read-status-icon {
-            font-size: 14px !important;
-            margin-left: 6px;
-            vertical-align: middle;
-        }
-        
-        .read-status-read {
-            color: #28a745 !important;
-        }
-        
-        .read-status-unread {
-            color: #ffc107 !important;
-        }
+
         
         /* Mobile Specific Styles */
         @media (max-width: 768px) {
@@ -329,6 +315,61 @@
                 padding-left: 0.5rem;
                 padding-right: 0.5rem;
             }
+            
+            /* Mobile Table Optimizations */
+            .table th:nth-child(5), /* Status column */
+            .table td:nth-child(5) {
+                display: none !important;
+            }
+            
+            /* Mobile Task Rows with Status Colors */
+            .task-row {
+                position: relative;
+            }
+            
+            .task-row[data-status="pending"] {
+                background-color: rgba(255, 243, 205, 0.3) !important;
+                border-left: 4px solid #ffc107;
+            }
+            
+            .task-row[data-status="in_progress"] {
+                background-color: rgba(204, 229, 255, 0.3) !important;
+                border-left: 4px solid #007bff;
+            }
+            
+            .task-row[data-status="completed"] {
+                background-color: rgba(212, 237, 218, 0.3) !important;
+                border-left: 4px solid #28a745;
+            }
+            
+            .task-row[data-status="cancelled"] {
+                background-color: rgba(248, 215, 218, 0.3) !important;
+                border-left: 4px solid #dc3545;
+            }
+            
+            /* Mobile Description Full Width */
+            .task-row td:first-child {
+                padding-bottom: 0.3rem !important;
+            }
+            
+            .task-row td:first-child small {
+                display: block;
+                width: 100%;
+                margin-top: 0.25rem;
+                line-height: 1.3;
+                max-height: 2.6rem;
+                overflow: hidden;
+            }
+            
+            /* Reduce row height */
+            .table td {
+                padding: 0.4rem 0.5rem !important;
+                vertical-align: top;
+            }
+            
+            .table th {
+                padding: 0.5rem 0.5rem !important;
+            }
         }
         
         /* Extra Small Mobile Devices */
@@ -348,6 +389,97 @@
             .nav-icon {
                 font-size: 0.9rem;
                 padding: 0.3rem;
+                min-width: 30px;
+                height: 30px;
+            }
+            
+            .main-content {
+                padding: 0.25rem;
+            }
+            
+            .card-body {
+                padding: 0.75rem;
+            }
+            
+            /* Extra compact table on very small screens */
+            .table {
+                font-size: 0.8rem;
+            }
+            
+            .table td {
+                padding: 0.3rem 0.4rem !important;
+            }
+            
+            .table th {
+                padding: 0.4rem 0.4rem !important;
+                font-size: 0.75rem;
+            }
+            
+            /* Hide more columns on very small screens if needed */
+            .table th:nth-child(4), /* Priority column */
+            .table td:nth-child(4) {
+                display: none !important;
+            }
+            
+            /* Make description text even more compact */
+            .task-row td:first-child small {
+                font-size: 0.7rem;
+                max-height: 2rem;
+                line-height: 1.2;
+            }
+            
+            /* Action buttons more compact */
+            .btn-sm {
+                padding: 0.15rem 0.3rem;
+                font-size: 0.7rem;
+            }
+            
+            /* Status row colors more pronounced on small screens */
+            .task-row[data-status="pending"] {
+                border-left: 3px solid #ffc107;
+            }
+            
+            .task-row[data-status="in_progress"] {
+                border-left: 3px solid #007bff;
+            }
+            
+            .task-row[data-status="completed"] {
+                border-left: 3px solid #28a745;
+            }
+            
+            .task-row[data-status="cancelled"] {
+                border-left: 3px solid #dc3545;
+            }
+            
+            /* Mobile Card Status - Hide status badge and use card styling */
+            .task-card .badge[class*="bg-warning"],
+            .task-card .badge[class*="bg-info"], 
+            .task-card .badge[class*="bg-success"],
+            .task-card .badge[class*="bg-danger"] {
+                display: none !important;
+            }
+            
+            /* Mobile Task Cards with enhanced status indication */
+            .task-card.status-pending {
+                border-left: 4px solid #ffc107 !important;
+                background-color: rgba(255, 243, 205, 0.15) !important;
+            }
+            
+            .task-card.status-in_progress {
+                border-left: 4px solid #007bff !important;
+                background-color: rgba(204, 229, 255, 0.15) !important;
+            }
+            
+            .task-card.status-completed {
+                border-left: 4px solid #28a745 !important;
+                background-color: rgba(212, 237, 218, 0.15) !important;
+            }
+            
+            .task-card.status-cancelled {
+                border-left: 4px solid #dc3545 !important;
+                background-color: rgba(248, 215, 218, 0.15) !important;
+            }
+        }
                 min-width: 30px;
                 height: 30px;
             }
