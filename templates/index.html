@@ -218,7 +218,7 @@
                                             {% if task.description %}
                                             <tr class="task-description-row d-table-row d-md-none" data-status="{{ task.status }}">
                                                 <td colspan="5" class="task-description-cell">
-                                                    <small class="text-muted">{{ task.description|striptags }}</small>
+                                                    <small class="text-muted">{{ (task.description|striptags)[:50] }}{% if (task.description|striptags)|length > 50 %}...{% endif %}</small>
                                                 </td>
                                             </tr>
                                             {% endif %}
@@ -305,7 +305,7 @@
                                             {% if task.description %}
                                             <tr class="task-description-row d-table-row d-md-none" data-status="{{ task.status }}">
                                                 <td colspan="5" class="task-description-cell">
-                                                    <small class="text-muted">{{ task.description|striptags }}</small>
+                                                    <small class="text-muted">{{ (task.description|striptags)[:50] }}{% if (task.description|striptags)|length > 50 %}...{% endif %}</small>
                                                 </td>
                                             </tr>
                                             {% endif %}
@@ -408,7 +408,7 @@
                                             {% if task.description %}
                                             <tr class="task-description-row d-table-row d-md-none" data-status="{{ task.status }}">
                                                 <td colspan="5" class="task-description-cell">
-                                                    <small class="text-muted">{{ task.description|striptags }}</small>
+                                                    <small class="text-muted">{{ (task.description|striptags)[:50] }}{% if (task.description|striptags)|length > 50 %}...{% endif %}</small>
                                                 </td>
                                             </tr>
                                             {% endif %}
@@ -547,7 +547,7 @@
                                             {% if task.description %}
                                             <tr class="task-description-row d-table-row d-md-none" data-status="{{ task.status }}">
                                                 <td colspan="5" class="task-description-cell">
-                                                    <small class="text-muted">{{ task.description|striptags }}</small>
+                                                    <small class="text-muted">{{ (task.description|striptags)[:50] }}{% if (task.description|striptags)|length > 50 %}...{% endif %}</small>
                                                 </td>
                                             </tr>
                                             {% endif %}
@@ -654,7 +654,7 @@
                                             {% if task.description %}
                                             <tr class="task-description-row d-table-row d-md-none" data-status="{{ task.status }}">
                                                 <td colspan="5" class="task-description-cell">
-                                                    <small class="text-muted">{{ task.description|striptags }}</small>
+                                                    <small class="text-muted">{{ (task.description|striptags)[:50] }}{% if (task.description|striptags)|length > 50 %}...{% endif %}</small>
                                                 </td>
                                             </tr>
                                             {% endif %}
@@ -750,7 +750,7 @@
                                             {% if task.description %}
                                             <tr class="task-description-row d-table-row d-md-none" data-status="{{ task.status }}">
                                                 <td colspan="5" class="task-description-cell">
-                                                    <small class="text-muted">{{ task.description|striptags }}</small>
+                                                    <small class="text-muted">{{ (task.description|striptags)[:50] }}{% if (task.description|striptags)|length > 50 %}...{% endif %}</small>
                                                 </td>
                                             </tr>
                                             {% endif %}
