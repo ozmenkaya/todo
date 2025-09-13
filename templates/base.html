@@ -347,7 +347,7 @@
                 border-left: 4px solid #dc3545;
             }
             
-            /* Mobile Description Full Width - More Integrated Design */
+            /* Mobile Description Full Width - Single Line */
             .task-description-row {
                 background: inherit !important;
                 border-top: none !important;
@@ -369,6 +369,17 @@
                 display: block;
                 margin-top: -0.2rem;
                 border-left: 3px solid currentColor;
+                
+                /* Single line with ellipsis */
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            
+            /* Hide Assigned column on mobile */
+            .table th:nth-child(2), /* Assigned column header */
+            .table td:nth-child(2) { /* Assigned column data */
+                display: none !important;
             }
             
             /* Inherit status colors for description borders */
